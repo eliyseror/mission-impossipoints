@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Config (PIN) - readable by all, writable by all
+    // Since there's no auth, we rely on the PIN being checked in-app
+    match /config/{doc} {
+      allow read, write: if true;
+    }
+
+    // Kids - readable by all, writable by all
+    match /kids/{kidId} {
+      allow read, write: if true;
+    }
+
+    // Chores - readable by all, writable by all
+    match /chores/{choreId} {
+      allow read, write: if true;
+    }
+
+    // Prizes - readable by all, writable by all
+    match /prizes/{prizeId} {
+      allow read, write: if true;
+    }
+
+    // History - readable by all, writable by all
+    match /history/{entryId} {
+      allow read, write: if true;
+    }
+
+    // Block everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

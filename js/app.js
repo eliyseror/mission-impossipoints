@@ -150,7 +150,8 @@ function renderHome() {
         <div class="welcome">
           <div class="welcome-logo">🕵️</div>
           <h2>!ברוכים הבאים</h2>
-          <p>הוסיפו את הסוכנים הראשונים שלכם דרך לוח הבקרה של ההורים</p>
+          <h3 style="color:var(--gold);font-weight:900;margin-bottom:8px">Mission Impossipoints</h3>
+          <p>משימות בלתי אפשריות מתחילות כאן!<br>הוסיפו את הסוכנים הראשונים שלכם</p>
           <button class="btn btn-gold" onclick="navigate('pin')">🔐 מרכז הפיקוד</button>
         </div>
       </div>`;
@@ -552,6 +553,7 @@ async function handleClick(e) {
       if (chore && kid) {
         await Store.addRequest(kid.id, kid.name, chore.id, chore.name, 'chore', chore.points);
         await loadData();
+        celebrate('stars');
         toast('✓ נשלח לאישור ההורים');
         render();
       }
@@ -566,6 +568,7 @@ async function handleClick(e) {
         await Store.addRequest(kid.id, kid.name, prize.id, prize.name, 'redeem', prize.cost);
         await Store.addPoints(kid.id, -prize.cost);
         await loadData();
+        celebrate('big');
         toast(`🎉 ${kid.name} מימש/ה: ${prize.name}`);
         render();
       }
@@ -580,6 +583,7 @@ async function handleClick(e) {
     case 'approve': {
       await Store.approveRequest(btn.dataset.id, btn.dataset.kidId, Number(btn.dataset.points));
       await loadData();
+      celebrate('stars');
       toast('✓ אושר!');
       render();
       break;
@@ -838,6 +842,49 @@ function toast(msg) {
   el.classList.remove('hidden');
   clearTimeout(el._timer);
   el._timer = setTimeout(() => el.classList.add('hidden'), 2500);
+}
+
+// ==================== Celebrations ====================
+
+const PARTICLES = ['⭐','✨','🌟','💫','🎯','🏆','🎉','🎊','💛','🔥'];
+
+function celebrate(type = 'stars') {
+  haptic();
+  const container = document.createElement('div');
+  container.className = 'celebration-container';
+  document.body.appendChild(container);
+
+  const count = type === 'big' ? 30 : 15;
+  const emojis = type === 'big'
+    ? ['🎉','🎊','⭐','✨','🌟','🏆','💛','🥳']
+    : ['⭐','✨','🌟','💫','💛'];
+
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('span');
+    p.className = 'celebration-particle';
+    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+
+    const startX = 30 + Math.random() * 40;
+    const startY = 40 + Math.random() * 20;
+    p.style.left = startX + '%';
+    p.style.top = startY + '%';
+
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 200;
+    p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--ty', Math.sin(angle) * dist - 100 + 'px');
+    p.style.animationDuration = (0.6 + Math.random() * 0.8) + 's';
+    p.style.animationDelay = (Math.random() * 0.3) + 's';
+    p.style.fontSize = (1.2 + Math.random() * 1.2) + 'rem';
+
+    container.appendChild(p);
+  }
+
+  setTimeout(() => container.remove(), 2000);
+}
+
+function haptic() {
+  if (navigator.vibrate) navigator.vibrate(30);
 }
 
 // ==================== Start ====================
