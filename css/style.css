@@ -1,0 +1,941 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-primary: #0a0a1a;
+  --bg-secondary: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-card-hover: #1c2d50;
+  --gold: #f0a500;
+  --gold-light: #ffd369;
+  --gold-dark: #c48800;
+  --accent: #e94560;
+  --text: #ffffff;
+  --text-dim: #8888aa;
+  --success: #4ecca3;
+  --danger: #e94560;
+  --border: rgba(240, 165, 0, 0.15);
+  --shadow: 0 4px 20px rgba(0,0,0,0.3);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --nav-height: 70px;
+  --header-height: 56px;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Heebo', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text);
+  direction: rtl;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ==================== Layout ==================== */
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  padding: 0 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+#header-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  flex: 1;
+}
+
+.header-btn {
+  background: none;
+  border: none;
+  color: var(--gold);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 8px;
+  width: 40px;
+}
+
+.header-spacer {
+  width: 40px;
+}
+
+#main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  padding-bottom: 24px;
+  -webkit-overflow-scrolling: touch;
+}
+
+#nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: var(--nav-height);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  transition: color 0.2s;
+}
+
+.nav-btn .nav-icon {
+  font-size: 1.5rem;
+}
+
+.nav-btn.active {
+  color: var(--gold);
+}
+
+/* ==================== Cards ==================== */
+
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.card:active {
+  transform: scale(0.98);
+  background: var(--bg-card-hover);
+}
+
+.card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-icon {
+  font-size: 2.2rem;
+  flex-shrink: 0;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.card-sub {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.card-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(240, 165, 0, 0.15);
+  color: var(--gold-light);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ==================== Kid Cards on Home ==================== */
+
+.kids-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kid-card {
+  cursor: pointer;
+}
+
+.kid-card .card-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(240, 165, 0, 0.1);
+  border-radius: 50%;
+}
+
+/* ==================== Section Headers ==================== */
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 12px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title:first-child {
+  margin-top: 0;
+}
+
+/* ==================== Buttons ==================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Heebo', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+  width: 100%;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: #0a0a1a;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #0a0a1a;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--border);
+  color: var(--text);
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  width: auto;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-row .btn {
+  flex: 1;
+}
+
+/* ==================== Mission (Chore) Items ==================== */
+
+.mission-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+
+.mission-info {
+  flex: 1;
+}
+
+.mission-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.mission-points {
+  font-size: 0.8rem;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+.mission-btn {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  border: none;
+  border-radius: 8px;
+  color: #0a0a1a;
+  font-family: 'Heebo', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s;
+}
+
+.mission-btn:active {
+  transform: scale(0.95);
+}
+
+.mission-btn.pending {
+  background: var(--text-dim);
+  color: var(--bg-primary);
+  cursor: default;
+}
+
+/* ==================== Prize Items ==================== */
+
+.prize-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+
+.prize-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.prize-info {
+  flex: 1;
+}
+
+.prize-name {
+  font-weight: 600;
+}
+
+.prize-cost {
+  font-size: 0.8rem;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+.prize-btn {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, var(--success), #38b88c);
+  border: none;
+  border-radius: 8px;
+  color: #0a0a1a;
+  font-family: 'Heebo', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.prize-btn:disabled {
+  background: var(--text-dim);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==================== History ==================== */
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.history-icon {
+  font-size: 1.2rem;
+}
+
+.history-info {
+  flex: 1;
+}
+
+.history-status {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.status-approved {
+  background: rgba(78, 204, 163, 0.15);
+  color: var(--success);
+}
+
+.status-pending {
+  background: rgba(240, 165, 0, 0.15);
+  color: var(--gold);
+}
+
+.status-rejected {
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--danger);
+}
+
+/* ==================== PIN Screen ==================== */
+
+.pin-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 24px;
+  text-align: center;
+}
+
+.pin-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.pin-subtitle {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 16px;
+  direction: ltr;
+}
+
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  transition: background 0.15s;
+}
+
+.pin-dot.filled {
+  background: var(--gold);
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  gap: 12px;
+  direction: ltr;
+}
+
+.pin-key {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: 'Heebo', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, transform 0.1s;
+}
+
+.pin-key:active {
+  background: var(--gold);
+  color: var(--bg-primary);
+  transform: scale(0.95);
+}
+
+.pin-key.empty {
+  visibility: hidden;
+}
+
+.pin-key.backspace {
+  font-size: 1.2rem;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.pin-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  min-height: 1.2em;
+}
+
+/* ==================== Parent Panel ==================== */
+
+.parent-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.parent-tab {
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-dim);
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.parent-tab.active {
+  background: var(--gold);
+  color: var(--bg-primary);
+  border-color: var(--gold);
+}
+
+.pending-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.pending-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pending-kid {
+  font-weight: 700;
+}
+
+.pending-mission {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.pending-points {
+  margin-right: auto;
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* ==================== Forms & Inputs ==================== */
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-primary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'Heebo', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+  direction: rtl;
+}
+
+.form-input:focus {
+  border-color: var(--gold);
+}
+
+.form-input::placeholder {
+  color: var(--text-dim);
+}
+
+.icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.icon-option {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: var(--bg-primary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.icon-option.selected {
+  border-color: var(--gold);
+  background: rgba(240, 165, 0, 0.1);
+}
+
+/* ==================== Modal ==================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--gold);
+}
+
+/* ==================== Toast ==================== */
+
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--gold);
+  color: var(--text);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  z-index: 200;
+  animation: toastIn 0.3s ease;
+  text-align: center;
+}
+
+.toast.hidden {
+  display: none;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ==================== Empty States ==================== */
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.empty-text {
+  font-size: 0.95rem;
+}
+
+/* ==================== Points Display ==================== */
+
+.points-display {
+  text-align: center;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.points-number {
+  font-size: 3rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.points-label {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ==================== Manage List ==================== */
+
+.manage-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+.manage-item-info {
+  flex: 1;
+}
+
+.manage-item-name {
+  font-weight: 600;
+}
+
+.manage-item-detail {
+  font-size: 0.8rem;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+.manage-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.manage-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.manage-btn-edit {
+  background: rgba(240, 165, 0, 0.15);
+  color: var(--gold);
+}
+
+.manage-btn-delete {
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--danger);
+}
+
+/* ==================== Select Kid (Shop) ==================== */
+
+.kid-select {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+.kid-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.kid-chip.active {
+  border-color: var(--gold);
+  background: rgba(240, 165, 0, 0.1);
+  color: var(--gold);
+}
+
+/* ==================== Points Adjust ==================== */
+
+.points-adjust {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.points-adjust-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.points-adjust-val {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--gold);
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ==================== Welcome / Setup ==================== */
+
+.welcome {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.welcome-logo {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+
+.welcome h2 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.welcome p {
+  color: var(--text-dim);
+  margin-bottom: 24px;
+}
+
+/* ==================== Animations ==================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.screen-content {
+  animation: fadeIn 0.2s ease;
+}
+
+/* ==================== Scrollbar ==================== */
+
+#main::-webkit-scrollbar {
+  width: 4px;
+}
+
+#main::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* ==================== Badge count ==================== */
+
+.nav-btn {
+  position: relative;
+}
+
+.nav-badge {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+  background: var(--danger);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}

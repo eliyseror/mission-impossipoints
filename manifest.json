@@ -1,0 +1,23 @@
+{
+  "name": "Mission Impossipoints",
+  "short_name": "Impossipoints",
+  "description": "משימות בלתי אפשריות - אפליקציית פרסים לילדים",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

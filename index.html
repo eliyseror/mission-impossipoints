@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Impossipoints">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Mission Impossipoints</title>
+</head>
+<body>
+  <div id="app">
+    <header id="header">
+      <button id="btn-back" class="header-btn" aria-label="חזור" style="display:none">←</button>
+      <h1 id="header-title">Mission Impossipoints</h1>
+      <div class="header-spacer"></div>
+    </header>
+
+    <main id="main"></main>
+
+    <nav id="nav">
+      <button class="nav-btn active" data-screen="home">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">בית</span>
+      </button>
+      <button class="nav-btn" data-screen="shop">
+        <span class="nav-icon">🎁</span>
+        <span class="nav-label">פרסים</span>
+      </button>
+      <button class="nav-btn" data-screen="parent">
+        <span class="nav-icon">🔐</span>
+        <span class="nav-label">הורים</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal" class="modal"></div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
