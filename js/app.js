@@ -336,8 +336,10 @@ function setupPinPad() {
 async function handlePinKey(digit) {
   if (digit === 'back') {
     pinValue = pinValue.slice(0, -1);
+    playSound('tap');
   } else if (pinValue.length < 4) {
     pinValue += digit;
+    playSound('pin');
   }
 
   document.querySelectorAll('.pin-dot').forEach((dot, i) => {
@@ -349,14 +351,17 @@ async function handlePinKey(digit) {
       await Store.setPin(pinValue);
       state.pinSetupMode = false;
       state.parentUnlocked = true;
+      playSound('success');
       toast('✓ הקוד הסודי נשמר');
       navigate('parent');
     } else {
       const correctPin = await Store.getPin();
       if (pinValue === correctPin) {
+        playSound('success');
         state.parentUnlocked = true;
         navigate('parent');
       } else {
+        playSound('error');
         document.getElementById('pin-error').textContent = 'קוד שגוי, נסו שוב';
         pinValue = '';
         document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('filled'));
@@ -592,6 +597,7 @@ async function handleClick(e) {
     case 'reject': {
       await Store.rejectRequest(btn.dataset.id);
       await loadData();
+      playSound('reject');
       toast('✗ נדחה');
       render();
       break;
@@ -850,6 +856,7 @@ const PARTICLES = ['⭐','✨','🌟','💫','🎯','🏆','🎉','🎊','💛',
 
 function celebrate(type = 'stars') {
   haptic();
+  playSound(type === 'big' ? 'prize' : 'chore');
   const container = document.createElement('div');
   container.className = 'celebration-container';
   document.body.appendChild(container);
@@ -885,6 +892,72 @@ function celebrate(type = 'stars') {
 
 function haptic() {
   if (navigator.vibrate) navigator.vibrate(30);
+}
+
+// ==================== Sound Effects ====================
+
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, duration, delay = 0, type = 'sine', volume = 0.3) {
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(volume, ctx.currentTime + delay);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(ctx.currentTime + delay);
+  osc.stop(ctx.currentTime + delay + duration);
+}
+
+function playSound(name) {
+  try {
+    switch (name) {
+      case 'chore':
+        playTone(523, 0.15, 0, 'sine', 0.25);
+        playTone(659, 0.15, 0.12, 'sine', 0.25);
+        playTone(784, 0.25, 0.24, 'sine', 0.3);
+        break;
+      case 'prize':
+        playTone(523, 0.1, 0, 'sine', 0.2);
+        playTone(659, 0.1, 0.08, 'sine', 0.2);
+        playTone(784, 0.1, 0.16, 'sine', 0.25);
+        playTone(1047, 0.3, 0.24, 'sine', 0.3);
+        playTone(784, 0.15, 0.45, 'triangle', 0.15);
+        playTone(1047, 0.4, 0.55, 'sine', 0.25);
+        break;
+      case 'approve':
+        playTone(600, 0.12, 0, 'sine', 0.2);
+        playTone(800, 0.2, 0.1, 'sine', 0.25);
+        break;
+      case 'reject':
+        playTone(300, 0.2, 0, 'square', 0.15);
+        playTone(250, 0.3, 0.15, 'square', 0.12);
+        break;
+      case 'tap':
+        playTone(700, 0.06, 0, 'sine', 0.1);
+        break;
+      case 'pin':
+        playTone(500 + pinValue.length * 80, 0.08, 0, 'sine', 0.12);
+        break;
+      case 'success':
+        playTone(880, 0.15, 0, 'sine', 0.2);
+        playTone(1100, 0.25, 0.12, 'sine', 0.25);
+        break;
+      case 'error':
+        playTone(330, 0.15, 0, 'square', 0.12);
+        playTone(260, 0.25, 0.12, 'square', 0.1);
+        break;
+    }
+  } catch (_) {}
 }
 
 // ==================== Start ====================
