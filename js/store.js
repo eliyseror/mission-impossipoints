@@ -20,9 +20,7 @@ const Store = {
 
   async addKid(name, icon) {
     return db.collection('kids').add({
-      name,
-      icon,
-      points: 0,
+      name, icon, points: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   },
@@ -61,9 +59,7 @@ const Store = {
     return db.collection('chores').doc(id).update(data);
   },
 
-  async deleteChore(id) {
-    return db.collection('chores').doc(id).delete();
-  },
+  async deleteChore(id) { return db.collection('chores').doc(id).delete(); },
 
   // ==================== Prizes ====================
 
@@ -81,19 +77,13 @@ const Store = {
     return db.collection('prizes').doc(id).update(data);
   },
 
-  async deletePrize(id) {
-    return db.collection('prizes').doc(id).delete();
-  },
+  async deletePrize(id) { return db.collection('prizes').doc(id).delete(); },
 
   // ==================== History / Requests ====================
 
   async addRequest(kidId, kidName, itemId, itemName, type, points) {
     return db.collection('history').add({
-      kidId,
-      kidName,
-      itemId,
-      itemName,
-      type,
+      kidId, kidName, itemId, itemName, type,
       points: Number(points),
       status: type === 'redeem' ? 'approved' : 'pending',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -103,17 +93,14 @@ const Store = {
   async getPending() {
     const snap = await db.collection('history')
       .where('status', '==', 'pending')
-      .orderBy('createdAt', 'desc')
-      .get();
+      .orderBy('createdAt', 'desc').get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   },
 
   async getKidHistory(kidId) {
     const snap = await db.collection('history')
       .where('kidId', '==', kidId)
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
+      .orderBy('createdAt', 'desc').limit(50).get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   },
 
@@ -125,6 +112,116 @@ const Store = {
   async rejectRequest(requestId) {
     await db.collection('history').doc(requestId).update({ status: 'rejected' });
   },
+
+  // ==================== Shopping List ====================
+
+  async getShoppingItems() {
+    const snap = await db.collection('shopping').orderBy('createdAt').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async addShoppingItem(name, category = 'other') {
+    return db.collection('shopping').add({
+      name, category, checked: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  },
+
+  async toggleShoppingItem(id, checked) {
+    return db.collection('shopping').doc(id).update({ checked });
+  },
+
+  async deleteShoppingItem(id) {
+    return db.collection('shopping').doc(id).delete();
+  },
+
+  async clearCheckedItems() {
+    const snap = await db.collection('shopping').where('checked', '==', true).get();
+    const batch = db.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    return batch.commit();
+  },
+
+  // ==================== Parent Tasks ====================
+
+  async getTasks() {
+    const snap = await db.collection('tasks').orderBy('createdAt').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async addTask(title, assignedTo = '', priority = 'normal', dueDate = '') {
+    return db.collection('tasks').add({
+      title, assignedTo, priority, dueDate, done: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  },
+
+  async toggleTask(id, done) {
+    return db.collection('tasks').doc(id).update({ done });
+  },
+
+  async updateTask(id, data) {
+    return db.collection('tasks').doc(id).update(data);
+  },
+
+  async deleteTask(id) { return db.collection('tasks').doc(id).delete(); },
+
+  // ==================== Calendar Events ====================
+
+  async getEvents() {
+    const snap = await db.collection('events').orderBy('date').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async addEvent(title, date, time = '', member = '', color = '#f0a500') {
+    return db.collection('events').add({
+      title, date, time, member, color,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  },
+
+  async updateEvent(id, data) {
+    return db.collection('events').doc(id).update(data);
+  },
+
+  async deleteEvent(id) { return db.collection('events').doc(id).delete(); },
+
+  // ==================== Meals Planner ====================
+
+  async getMeals() {
+    const snap = await db.collection('meals').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async setMeal(date, type, description) {
+    const key = `${date}_${type}`;
+    return db.collection('meals').doc(key).set({
+      date, type, description,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  },
+
+  async deleteMeal(id) { return db.collection('meals').doc(id).delete(); },
+
+  // ==================== Family Messages ====================
+
+  async getMessages() {
+    const snap = await db.collection('messages').orderBy('createdAt', 'desc').limit(30).get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async addMessage(text, author = '👤') {
+    return db.collection('messages').add({
+      text, author, pinned: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  },
+
+  async togglePinMessage(id, pinned) {
+    return db.collection('messages').doc(id).update({ pinned });
+  },
+
+  async deleteMessage(id) { return db.collection('messages').doc(id).delete(); },
 
   // ==================== Seed Default Data ====================
 
