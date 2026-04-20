@@ -1499,7 +1499,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* ==================== Weekly Table ==================== */
+/* ==================== Weekly Report ==================== */
 
 .week-nav {
   display: flex;
@@ -1515,68 +1515,88 @@ body {
   color: var(--gold);
 }
 
-.week-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin: 0 -16px;
-  padding: 0 16px;
-}
-
-.week-table {
-  width: 100%;
-  min-width: 500px;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-}
-
-.week-table th, .week-table td {
-  padding: 8px 4px;
-  text-align: center;
-  border: 1px solid var(--border);
-}
-
-.week-table th {
+.week-kid-card {
   background: var(--bg-card);
-  color: var(--text-dim);
-  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.week-kid-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(240,165,0,0.06);
+  border-bottom: 1px solid var(--border);
+}
+
+.week-kid-avatar { font-size: 1.5rem; }
+.week-kid-name { font-weight: 700; font-size: 1rem; flex: 1; }
+.week-kid-summary {
   font-size: 0.75rem;
-}
-
-.week-table th.today-col {
-  background: rgba(240,165,0,0.15);
   color: var(--gold);
-}
-
-.week-table td.today-col {
-  background: rgba(240,165,0,0.05);
-}
-
-.week-kid {
-  text-align: right !important;
-  white-space: nowrap;
   font-weight: 600;
-  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
-.week-count {
-  font-weight: 900;
-  font-size: 1.1rem;
+.week-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+}
+
+.week-day-col {
+  padding: 8px 4px;
+  border-left: 1px solid var(--border);
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-day-col:first-child { border-left: none; }
+
+.week-day-col.week-today {
+  background: rgba(240,165,0,0.08);
+}
+
+.week-day-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.week-today .week-day-label {
   color: var(--gold);
 }
 
-.week-stars {
-  font-size: 0.55rem;
-  line-height: 1;
-}
-
-.week-empty {
+.week-day-empty {
   color: var(--text-dim);
-  opacity: 0.3;
+  opacity: 0.25;
+  font-size: 0.9rem;
+  margin-top: 4px;
 }
 
-.week-total {
-  font-weight: 900;
-  font-size: 1rem;
-  color: var(--success);
-  background: rgba(78,204,163,0.08);
+.week-task-chip {
+  font-size: 0.6rem;
+  background: rgba(78,204,163,0.1);
+  border: 1px solid rgba(78,204,163,0.2);
+  border-radius: 6px;
+  padding: 3px 5px;
+  text-align: center;
+  line-height: 1.3;
+  width: 100%;
+  word-break: break-word;
+}
+
+.week-task-pts {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.55rem;
 }

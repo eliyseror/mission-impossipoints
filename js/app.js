@@ -793,35 +793,36 @@ async function renderParentWeekly() {
       <span class="week-label">${weekLabel}</span>
       <button class="btn btn-outline btn-sm" data-action="week-next" ${isThisWeek?'disabled':''}>שבוע הבא ←</button>
     </div>
-    <div class="week-table-wrap">
-      <table class="week-table">
-        <thead><tr>
-          <th></th>
-          ${days.map((d,i) => {
-            const isToday = dateStr(d) === todayStr();
-            return `<th class="${isToday?'today-col':''}">${DAYS_HE[i]}<br><small>${d.getDate()}/${d.getMonth()+1}</small></th>`;
-          }).join('')}
-          <th>סה״כ</th>
-        </tr></thead>
-        <tbody>
-          ${state.kids.map(kid => {
-            let total = 0;
-            const cells = days.map(d => {
+    ${state.kids.map(kid => {
+      const kidHistory = weekHistory.filter(h => h.kidId === kid.id && h.type === 'chore');
+      const weekTotal = kidHistory.length;
+      const totalPoints = kidHistory.reduce((s,h) => s + (h.points||0), 0);
+      return `
+        <div class="week-kid-card">
+          <div class="week-kid-header">
+            <span class="week-kid-avatar">${kid.icon}</span>
+            <span class="week-kid-name">${kid.name}</span>
+            <span class="week-kid-summary">${weekTotal} משימות · ${totalPoints} ⭐</span>
+          </div>
+          <div class="week-days-grid">
+            ${days.map((d, i) => {
               const dayStr = dateStr(d);
-              const dayTasks = weekHistory.filter(h =>
-                h.kidId === kid.id && h.type === 'chore' &&
+              const isToday = dayStr === todayStr();
+              const dayTasks = kidHistory.filter(h =>
                 h.createdAt && dateStr(h.createdAt.toDate ? h.createdAt.toDate() : new Date(h.createdAt)) === dayStr
               );
-              total += dayTasks.length;
-              const isToday = dayStr === todayStr();
-              if (dayTasks.length === 0) return `<td class="${isToday?'today-col':''}"><span class="week-empty">-</span></td>`;
-              return `<td class="${isToday?'today-col':''}" title="${dayTasks.map(t=>t.itemName).join('\n')}"><span class="week-count">${dayTasks.length}</span><div class="week-stars">${'⭐'.repeat(Math.min(dayTasks.length,5))}</div></td>`;
-            }).join('');
-            return `<tr><td class="week-kid">${kid.icon} ${kid.name}</td>${cells}<td class="week-total">${total}</td></tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
+              return `
+                <div class="week-day-col ${isToday?'week-today':''}">
+                  <div class="week-day-label">${DAYS_HE[i]}׳ <small>${d.getDate()}/${d.getMonth()+1}</small></div>
+                  ${dayTasks.length === 0
+                    ? '<div class="week-day-empty">—</div>'
+                    : dayTasks.map(t => `<div class="week-task-chip">🎯 ${t.itemName} <span class="week-task-pts">+${t.points}</span></div>`).join('')
+                  }
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }).join('')}
   `;
 }
 
