@@ -804,20 +804,38 @@ async function renderParentWeekly() {
             <span class="week-kid-name">${kid.name}</span>
             <span class="week-kid-summary">${weekTotal} משימות · ${totalPoints} ⭐</span>
           </div>
-          <div class="week-days-grid">
+          <div class="week-day-list">
             ${days.map((d, i) => {
-              const dayStr = dateStr(d);
-              const isToday = dayStr === todayStr();
+              const ds = dateStr(d);
+              const isToday = ds === todayStr();
               const dayTasks = kidHistory.filter(h =>
-                h.createdAt && dateStr(h.createdAt.toDate ? h.createdAt.toDate() : new Date(h.createdAt)) === dayStr
+                h.createdAt && dateStr(h.createdAt.toDate ? h.createdAt.toDate() : new Date(h.createdAt)) === ds
               );
+              const dayPts = dayTasks.reduce((s,h) => s + (h.points||0), 0);
+              const hasData = dayTasks.length > 0;
               return `
-                <div class="week-day-col ${isToday?'week-today':''}">
-                  <div class="week-day-label">${DAYS_HE[i]}׳ <small>${d.getDate()}/${d.getMonth()+1}</small></div>
-                  ${dayTasks.length === 0
-                    ? '<div class="week-day-empty">—</div>'
-                    : dayTasks.map(t => `<div class="week-task-chip">🎯 ${t.itemName} <span class="week-task-pts">+${t.points}</span></div>`).join('')
-                  }
+                <div class="week-day-row ${isToday ? 'week-today' : ''} ${hasData ? 'has-data' : ''}" ${hasData ? `data-action="toggle-day-detail" data-day-id="${kid.id}-${ds}"` : ''}>
+                  <div class="week-day-main">
+                    <span class="week-day-name">${DAYS_HE[i]}׳</span>
+                    <span class="week-day-date">${d.getDate()}/${d.getMonth()+1}</span>
+                    ${hasData
+                      ? `<span class="week-day-count">${dayTasks.length} משימות</span>
+                         <span class="week-day-pts">${dayPts} ⭐</span>
+                         <span class="week-day-arrow">▼</span>`
+                      : '<span class="week-day-none">—</span>'
+                    }
+                  </div>
+                  ${hasData ? `
+                    <div class="week-day-detail hidden" id="detail-${kid.id}-${ds}">
+                      ${dayTasks.map(t => `
+                        <div class="week-task-row">
+                          <span class="week-task-icon">🎯</span>
+                          <span class="week-task-name">${t.itemName}</span>
+                          <span class="week-task-pts">+${t.points} ⭐</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
                 </div>`;
             }).join('')}
           </div>
@@ -950,6 +968,16 @@ async function handleClick(e) {
     }
     case 'week-prev': state.weekOffset--; render(); break;
     case 'week-next': if (state.weekOffset < 0) { state.weekOffset++; render(); } break;
+    case 'toggle-day-detail': {
+      const detail = document.getElementById('detail-' + btn.dataset.dayId);
+      if (detail) {
+        const isOpen = !detail.classList.contains('hidden');
+        detail.classList.toggle('hidden');
+        const arrow = btn.querySelector('.week-day-arrow');
+        if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+      }
+      break;
+    }
     case 'change-pin': state.pinSetupMode = true; navigate('pin'); break;
     case 'lock-parent': state.parentUnlocked = false; navigate('dashboard'); toast('🔒 מרכז הפיקוד ננעל'); break;
 
