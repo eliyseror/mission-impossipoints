@@ -719,7 +719,11 @@ function renderParentPoints() {
         <button class="btn btn-danger btn-sm" data-action="adjust-points" data-kid-id="${kid.id}" data-amount="-10">-10</button>
         <button class="btn btn-outline btn-sm" data-action="custom-points" data-kid-id="${kid.id}">מותאם</button>
       </div>
-    </div>`).join('')}`;
+      <button class="btn btn-danger btn-sm" style="width:100%;margin-top:4px;opacity:0.8" data-action="reset-kid-points" data-kid-id="${kid.id}" data-kid-name="${kid.name}">🔄 אפס נקודות של ${kid.name}</button>
+    </div>`).join('')}
+    ${state.kids.length > 1 ? `
+      <button class="btn btn-danger" style="margin-top:16px;width:100%" data-action="reset-all-points">🔄 אפס נקודות לכל הילדים</button>
+    ` : ''}`;
 }
 
 function renderParentSettings() {
@@ -807,6 +811,18 @@ async function handleClick(e) {
       await loadData(); toast(`${amt>0?'+':''}${amt} נקודות`); render(); break;
     }
     case 'custom-points': showCustomPointsModal(btn.dataset.kidId); break;
+    case 'reset-kid-points': {
+      if (confirm(`לאפס את הנקודות של ${btn.dataset.kidName} ל-0?`)) {
+        await Store.updateKid(btn.dataset.kidId, { points: 0 });
+        await loadData(); toast(`🔄 הנקודות של ${btn.dataset.kidName} אופסו`); render();
+      } break;
+    }
+    case 'reset-all-points': {
+      if (confirm('לאפס את הנקודות של כל הילדים ל-0?')) {
+        for (const kid of state.kids) { await Store.updateKid(kid.id, { points: 0 }); }
+        await loadData(); toast('🔄 כל הנקודות אופסו'); render();
+      } break;
+    }
     case 'change-pin': state.pinSetupMode = true; navigate('pin'); break;
     case 'lock-parent': state.parentUnlocked = false; navigate('dashboard'); toast('🔒 מרכז הפיקוד ננעל'); break;
 
