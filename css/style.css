@@ -1056,6 +1056,68 @@ body {
 
 /* ==================== Shopping List ==================== */
 
+.shop-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.shop-tab {
+  flex: 1;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.shop-tab.active {
+  background: var(--gold);
+  color: var(--bg-primary);
+  border-color: var(--gold);
+}
+
+.preset-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.preset-chip {
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text);
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.preset-chip:active:not(:disabled) {
+  transform: scale(0.95);
+  background: var(--gold);
+  color: var(--bg-primary);
+}
+
+.preset-chip.in-list {
+  background: rgba(78, 204, 163, 0.1);
+  border-color: var(--success);
+  color: var(--success);
+  opacity: 0.6;
+  cursor: default;
+}
+
 .quick-add {
   display: flex;
   gap: 8px;

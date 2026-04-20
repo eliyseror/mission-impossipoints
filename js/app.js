@@ -9,6 +9,7 @@ const state = {
   moreTab: 'tasks',
   calendarTab: 'events',
   calendarDate: new Date(),
+  shopTab: 'list',
   kids: [], chores: [], prizes: [], pending: [], history: [],
   shoppingItems: [], tasks: [], events: [], meals: [], messages: []
 };
@@ -25,6 +26,15 @@ const SHOP_CATS = [
   { id:'snacks', name:'חטיפים ומשקאות', icon:'🍿' },
   { id:'other', name:'אחר', icon:'📦' }
 ];
+const SHOP_PRESETS = {
+  dairy: ['חלב','ביצים','גבינה צהובה','גבינה לבנה','קוטג׳','שמנת','חמאה','יוגורט','שוקו','מילקי','שמנת מתוקה','לבן','שוקולד חלב','גבינת שמנת'],
+  produce: ['עגבניות','מלפפון','בצל','תפוחי אדמה','גזר','לימון','בננות','תפוחים','פלפל','אבוקדו','חסה','כוסברה','פטרוזיליה','שום','תפוזים','אשכולית','ענבים','שזיפים','קישוא','חציל','בטטה','פטריות','תירס'],
+  meat: ['חזה עוף','שניצל','בשר טחון','כנפיים','פרגית','נקניקיות','סלמון','טונה בקופסא','שוקיים','קבב','המבורגר'],
+  bakery: ['לחם לבן','לחם מלא','פיתות','חלה','לחמניות','טורטייה','בייגלה','עוגת שמרים','קרואסון'],
+  cleaning: ['סבון כלים','אקונומיקה','נייר טואלט','מגבות נייר','שקיות אשפה','מרכך כביסה','אבקת כביסה','סבון ידיים','ספוגים','שקיות פריזר'],
+  snacks: ['במבה','ביסלי','שוקולד','עוגיות','חטיף','מים','מיץ','קולה','ספרייט','פופקורן','קרקר','אגוזים','חמאת בוטנים','ריבה','נוטלה','דבש'],
+  other: ['קפה','תה','סוכר','מלח','שמן','חומץ','רוטב סויה','רוטב עגבניות','אורז','פסטה','קמח','שימורים','זיתים','טחינה','חומוס']
+};
 const PRIORITY = { high:'🔴 דחוף', normal:'🟡 רגיל', low:'🟢 לא דחוף' };
 const EVENT_COLORS = ['#f0a500','#4ecca3','#e94560','#3b82f6','#a855f7','#ec4899'];
 
@@ -295,18 +305,31 @@ function renderShopping() {
     if (!grouped[item.category]) grouped[item.category] = [];
     grouped[item.category].push(item);
   });
+  const existingNames = state.shoppingItems.map(i => i.name);
+  const activeTab = state.shopTab || 'list';
 
   return `<div class="screen-content">
+    <div class="shop-tabs">
+      <button class="shop-tab ${activeTab==='list'?'active':''}" data-action="shop-tab" data-tab="list">🛒 הרשימה ${unchecked.length?'('+unchecked.length+')':''}</button>
+      <button class="shop-tab ${activeTab==='add'?'active':''}" data-action="shop-tab" data-tab="add">➕ הוסף מוצרים</button>
+    </div>
+
+    ${activeTab === 'add' ? renderShopPresets(existingNames) : renderShopList(grouped, checked, unchecked)}
+  </div>`;
+}
+
+function renderShopList(grouped, checked, unchecked) {
+  return `
     <div class="quick-add">
-      <input class="form-input" id="shop-input" type="text" placeholder="הוסף פריט..." style="flex:1">
+      <input class="form-input" id="shop-input" type="text" placeholder="הוסף פריט ידנית..." style="flex:1">
       <select class="form-select" id="shop-cat">
-        ${SHOP_CATS.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}
+        ${SHOP_CATS.map(c => `<option value="${c.id}">${c.icon}</option>`).join('')}
       </select>
       <button class="btn btn-gold btn-sm" data-action="add-shop-item" style="width:auto">➕</button>
     </div>
 
-    ${Object.keys(grouped).length === 0 && checked.length === 0 ? `
-      <div class="empty-state"><div class="empty-icon">🛒</div><div class="empty-text">הרשימה ריקה</div></div>
+    ${unchecked.length === 0 && checked.length === 0 ? `
+      <div class="empty-state"><div class="empty-icon">🛒</div><div class="empty-text">הרשימה ריקה<br><small style="color:var(--text-dim)">לחצו על "הוסף מוצרים" לבחירה מהירה</small></div></div>
     ` : ''}
 
     ${SHOP_CATS.filter(c => grouped[c.id]).map(cat => `
@@ -330,7 +353,19 @@ function renderShopping() {
       `).join('')}
       <button class="btn btn-outline btn-sm" style="margin-top:8px" data-action="clear-checked">🗑️ נקה פריטים שנלקחו</button>
     ` : ''}
-  </div>`;
+  `;
+}
+
+function renderShopPresets(existingNames) {
+  return SHOP_CATS.filter(c => SHOP_PRESETS[c.id]).map(cat => `
+    <div class="section-title">${cat.icon} ${cat.name}</div>
+    <div class="preset-grid">
+      ${SHOP_PRESETS[cat.id].map(name => {
+        const inList = existingNames.includes(name);
+        return `<button class="preset-chip ${inList?'in-list':''}" data-action="add-preset" data-name="${name}" data-cat="${cat.id}" ${inList?'disabled':''}>${inList?'✓ ':''} ${name}</button>`;
+      }).join('')}
+    </div>
+  `).join('');
 }
 
 // ==================== Calendar ====================
@@ -776,6 +811,7 @@ async function handleClick(e) {
     case 'lock-parent': state.parentUnlocked = false; navigate('dashboard'); toast('🔒 מרכז הפיקוד ננעל'); break;
 
     // Shopping
+    case 'shop-tab': state.shopTab = btn.dataset.tab; render(); break;
     case 'add-shop-item': {
       const input = document.getElementById('shop-input');
       const cat = document.getElementById('shop-cat').value;
@@ -784,9 +820,16 @@ async function handleClick(e) {
         await loadData(); input.value = ''; playSound('tap'); render();
       } break;
     }
-    case 'toggle-shop':
+    case 'add-preset': {
+      await Store.addShoppingItem(btn.dataset.name, btn.dataset.cat);
+      await loadData(); playSound('tap');
+      btn.classList.add('in-list'); btn.disabled = true; btn.textContent = '✓ ' + btn.dataset.name;
+      break;
+    }
+    case 'toggle-shop': {
       const item = state.shoppingItems.find(i => i.id === btn.dataset.id);
       if (item) { await Store.toggleShoppingItem(item.id, !item.checked); await loadData(); playSound('tap'); render(); } break;
+    }
     case 'delete-shop':
       await Store.deleteShoppingItem(btn.dataset.id); await loadData(); render(); break;
     case 'clear-checked':
