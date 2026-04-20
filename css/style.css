@@ -1432,3 +1432,151 @@ body {
   justify-content: center;
   padding: 0 4px;
 }
+
+/* ==================== Daily Special ==================== */
+
+.daily-special-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(240,165,0,0.15), rgba(240,165,0,0.05));
+  border: 2px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  animation: specialPulse 2s ease-in-out infinite;
+}
+
+@keyframes specialPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(240,165,0,0.2); }
+  50% { box-shadow: 0 0 20px rgba(240,165,0,0.5); }
+}
+
+.daily-special-star {
+  font-size: 2rem;
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.daily-special-text { flex: 1; }
+.daily-special-label {
+  font-size: 0.75rem;
+  color: var(--gold);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.daily-special-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.daily-special-bonus {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--gold);
+}
+
+.mission-item.daily-special {
+  border: 2px solid var(--gold);
+  background: linear-gradient(135deg, rgba(240,165,0,0.12), rgba(240,165,0,0.03));
+  position: relative;
+  animation: specialPulse 2.5s ease-in-out infinite;
+}
+
+.daily-badge {
+  font-size: 0.75rem;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* ==================== Weekly Table ==================== */
+
+.week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 8px;
+}
+
+.week-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--gold);
+}
+
+.week-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+
+.week-table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.week-table th, .week-table td {
+  padding: 8px 4px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.week-table th {
+  background: var(--bg-card);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.week-table th.today-col {
+  background: rgba(240,165,0,0.15);
+  color: var(--gold);
+}
+
+.week-table td.today-col {
+  background: rgba(240,165,0,0.05);
+}
+
+.week-kid {
+  text-align: right !important;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.week-count {
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: var(--gold);
+}
+
+.week-stars {
+  font-size: 0.55rem;
+  line-height: 1;
+}
+
+.week-empty {
+  color: var(--text-dim);
+  opacity: 0.3;
+}
+
+.week-total {
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--success);
+  background: rgba(78,204,163,0.08);
+}

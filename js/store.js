@@ -11,6 +11,27 @@ const Store = {
     await db.collection('config').doc('settings').set({ pin }, { merge: true });
   },
 
+  async getDailySpecial() {
+    const doc = await db.collection('config').doc('dailySpecial').get();
+    return doc.exists ? doc.data() : null;
+  },
+
+  async setDailySpecial(choreId, date) {
+    return db.collection('config').doc('dailySpecial').set({ choreId, date });
+  },
+
+  async getWeekHistory(startDate, endDate) {
+    const snap = await db.collection('history')
+      .where('status', '==', 'approved')
+      .orderBy('createdAt', 'desc').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(h => {
+        if (!h.createdAt) return false;
+        const d = h.createdAt.toDate ? h.createdAt.toDate() : new Date(h.createdAt);
+        return d >= startDate && d <= endDate;
+      });
+  },
+
   // ==================== Kids ====================
 
   async getKids() {

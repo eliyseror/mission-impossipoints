@@ -10,6 +10,8 @@ const state = {
   calendarTab: 'events',
   calendarDate: new Date(),
   shopTab: 'list',
+  dailySpecialId: null,
+  weekOffset: 0,
   kids: [], chores: [], prizes: [], pending: [], history: [],
   shoppingItems: [], tasks: [], events: [], meals: [], messages: []
 };
@@ -40,6 +42,33 @@ const EVENT_COLORS = ['#f0a500','#4ecca3','#e94560','#3b82f6','#a855f7','#ec4899
 
 function dateStr(d) { return d.toISOString().split('T')[0]; }
 function todayStr() { return dateStr(new Date()); }
+
+const DAILY_BONUS = 5;
+
+async function loadDailySpecial() {
+  const saved = await Store.getDailySpecial();
+  const today = todayStr();
+  if (saved && saved.date === today && state.chores.find(c => c.id === saved.choreId)) {
+    state.dailySpecialId = saved.choreId;
+  } else if (state.chores.length > 0) {
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
+    const idx = dayOfYear % state.chores.length;
+    state.dailySpecialId = state.chores[idx].id;
+    await Store.setDailySpecial(state.dailySpecialId, today);
+  }
+}
+
+function getWeekRange(offset = 0) {
+  const now = new Date();
+  const day = now.getDay();
+  const start = new Date(now);
+  start.setDate(now.getDate() - day + (offset * 7));
+  start.setHours(0,0,0,0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23,59,59,999);
+  return { start, end };
+}
 function formatDate(s) {
   const d = new Date(s + 'T00:00:00');
   return `${DAYS_HE[d.getDay()]}׳, ${d.getDate()} ${MONTHS_HE[d.getMonth()]}`;
@@ -70,6 +99,7 @@ async function loadData() {
     Store.getShoppingItems(), Store.getTasks(), Store.getEvents(), Store.getMeals(), Store.getMessages()
   ]);
   Object.assign(state, { kids, chores, prizes, pending, shoppingItems, tasks, events, meals, messages });
+  await loadDailySpecial();
 }
 
 // ==================== Navigation ====================
@@ -151,7 +181,19 @@ function renderDashboard() {
   const pinnedMsgs = state.messages.filter(m => m.pinned);
   const topKid = [...state.kids].sort((a,b) => b.points - a.points)[0];
 
+  const dailyChore = state.chores.find(c => c.id === state.dailySpecialId);
+
   return `<div class="screen-content">
+    ${dailyChore ? `
+      <div class="daily-special-banner" data-action="nav" data-to="rewards">
+        <div class="daily-special-star">🌟</div>
+        <div class="daily-special-text">
+          <div class="daily-special-label">משימת היום</div>
+          <div class="daily-special-name">${dailyChore.name}</div>
+        </div>
+        <div class="daily-special-bonus">+${dailyChore.points + DAILY_BONUS} ⭐</div>
+      </div>
+    ` : ''}
     <div class="dash-grid">
       <div class="dash-tile dash-wide" data-action="nav" data-to="rewards">
         <div class="dash-tile-icon">⭐</div>
@@ -263,8 +305,11 @@ async function renderKid() {
     <div class="section-title">🎯 משימות</div>
     ${state.chores.filter(c => c.active !== false).map(chore => {
       const isPending = pendingIds.includes(chore.id);
-      return `<div class="mission-item">
-        <div class="mission-info"><div class="mission-name">${chore.name}</div><div class="mission-points">+${chore.points} נקודות</div></div>
+      const isSpecial = chore.id === state.dailySpecialId;
+      const pts = isSpecial ? chore.points + DAILY_BONUS : chore.points;
+      return `<div class="mission-item ${isSpecial ? 'daily-special' : ''}">
+        ${isSpecial ? '<div class="daily-badge">🌟 משימת היום! +' + DAILY_BONUS + ' בונוס</div>' : ''}
+        <div class="mission-info"><div class="mission-name">${chore.name}</div><div class="mission-points">+${pts} נקודות${isSpecial ? ' ⚡' : ''}</div></div>
         ${isPending ? `<span class="mission-btn pending">ממתין ⏳</span>` : `<button class="mission-btn" data-action="complete-chore" data-chore-id="${chore.id}">בוצע! ✓</button>`}
       </div>`;
     }).join('')}
@@ -623,9 +668,9 @@ async function renderParentSync() {
   return renderParentFull();
 }
 
-function renderParentFull() {
+async function renderParentFull() {
   const main = document.getElementById('main');
-  main.innerHTML = renderParentInner();
+  main.innerHTML = await renderParentInner();
   attachEvents();
   return '';
 }
@@ -636,13 +681,14 @@ async function renderParent() {
   return renderParentInner();
 }
 
-function renderParentInner() {
+async function renderParentInner() {
   const tabs = [
     { id:'approve', label:`אישור (${state.pending.length})`, icon:'✓' },
     { id:'kids', label:'ילדים', icon:'👤' },
     { id:'chores', label:'משימות', icon:'🎯' },
     { id:'prizes', label:'פרסים', icon:'🎁' },
     { id:'points', label:'נקודות', icon:'⭐' },
+    { id:'weekly', label:'שבועי', icon:'📊' },
     { id:'settings', label:'הגדרות', icon:'⚙️' }
   ];
   let content = '';
@@ -652,6 +698,7 @@ function renderParentInner() {
     case 'chores': content = renderParentChores(); break;
     case 'prizes': content = renderParentPrizes(); break;
     case 'points': content = renderParentPoints(); break;
+    case 'weekly': content = await renderParentWeekly(); break;
     case 'settings': content = renderParentSettings(); break;
   }
   return `<div class="screen-content">
@@ -726,8 +773,75 @@ function renderParentPoints() {
     ` : ''}`;
 }
 
+async function renderParentWeekly() {
+  const { start, end } = getWeekRange(state.weekOffset);
+  const weekHistory = await Store.getWeekHistory(start, end);
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    days.push(d);
+  }
+
+  const isThisWeek = state.weekOffset === 0;
+  const weekLabel = isThisWeek ? 'השבוע הנוכחי' : `${start.getDate()}/${start.getMonth()+1} - ${end.getDate()}/${end.getMonth()+1}`;
+
+  return `
+    <div class="week-nav">
+      <button class="btn btn-outline btn-sm" data-action="week-prev">→ שבוע קודם</button>
+      <span class="week-label">${weekLabel}</span>
+      <button class="btn btn-outline btn-sm" data-action="week-next" ${isThisWeek?'disabled':''}>שבוע הבא ←</button>
+    </div>
+    <div class="week-table-wrap">
+      <table class="week-table">
+        <thead><tr>
+          <th></th>
+          ${days.map((d,i) => {
+            const isToday = dateStr(d) === todayStr();
+            return `<th class="${isToday?'today-col':''}">${DAYS_HE[i]}<br><small>${d.getDate()}/${d.getMonth()+1}</small></th>`;
+          }).join('')}
+          <th>סה״כ</th>
+        </tr></thead>
+        <tbody>
+          ${state.kids.map(kid => {
+            let total = 0;
+            const cells = days.map(d => {
+              const dayStr = dateStr(d);
+              const dayTasks = weekHistory.filter(h =>
+                h.kidId === kid.id && h.type === 'chore' &&
+                h.createdAt && dateStr(h.createdAt.toDate ? h.createdAt.toDate() : new Date(h.createdAt)) === dayStr
+              );
+              total += dayTasks.length;
+              const isToday = dayStr === todayStr();
+              if (dayTasks.length === 0) return `<td class="${isToday?'today-col':''}"><span class="week-empty">-</span></td>`;
+              return `<td class="${isToday?'today-col':''}" title="${dayTasks.map(t=>t.itemName).join('\n')}"><span class="week-count">${dayTasks.length}</span><div class="week-stars">${'⭐'.repeat(Math.min(dayTasks.length,5))}</div></td>`;
+            }).join('');
+            return `<tr><td class="week-kid">${kid.icon} ${kid.name}</td>${cells}<td class="week-total">${total}</td></tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderParentSettings() {
-  return `<div class="section-title">⚙️ הגדרות</div>
+  const dailyChore = state.chores.find(c => c.id === state.dailySpecialId);
+  return `<div class="section-title">🌟 משימת היום</div>
+    <div class="manage-item" style="flex-wrap:wrap;gap:8px">
+      <span style="font-size:1.5rem">🌟</span>
+      <div class="manage-item-info">
+        <div class="manage-item-name">${dailyChore ? dailyChore.name : 'לא נבחרה'}</div>
+        <div class="manage-item-detail">+${DAILY_BONUS} נקודות בונוס · מתחלף אוטומטית כל יום</div>
+      </div>
+    </div>
+    <div class="section-title" style="margin-top:8px">🔄 שנה משימת היום</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+      ${state.chores.filter(c => c.active !== false).map(c => `
+        <button class="preset-chip ${c.id===state.dailySpecialId?'in-list':''}" data-action="set-daily-special" data-chore-id="${c.id}">${c.id===state.dailySpecialId?'✓ ':''}${c.name}</button>
+      `).join('')}
+    </div>
+    <div class="section-title">⚙️ הגדרות</div>
     <button class="btn btn-outline" style="margin-bottom:10px" data-action="change-pin">🔐 שנה קוד סודי</button>
     <button class="btn btn-outline" data-action="lock-parent">🔒 נעל מרכז פיקוד</button>`;
 }
@@ -771,8 +885,12 @@ async function handleClick(e) {
       const chore = state.chores.find(c => c.id === btn.dataset.choreId);
       const kid = state.kids.find(k => k.id === state.kidId);
       if (chore && kid) {
-        await Store.addRequest(kid.id, kid.name, chore.id, chore.name, 'chore', chore.points);
-        await loadData(); celebrate('stars'); toast('✓ נשלח לאישור ההורים'); render();
+        const isSpecial = chore.id === state.dailySpecialId;
+        const pts = isSpecial ? chore.points + DAILY_BONUS : chore.points;
+        await Store.addRequest(kid.id, kid.name, chore.id, chore.name, 'chore', pts);
+        await loadData(); celebrate('stars');
+        toast(isSpecial ? `🌟 משימת היום! +${pts} נקודות (כולל בונוס!)` : '✓ נשלח לאישור ההורים');
+        render();
       } break;
     }
     case 'redeem-prize': {
@@ -823,6 +941,14 @@ async function handleClick(e) {
         await loadData(); toast('🔄 כל הנקודות אופסו'); render();
       } break;
     }
+    case 'set-daily-special': {
+      await Store.setDailySpecial(btn.dataset.choreId, todayStr());
+      state.dailySpecialId = btn.dataset.choreId;
+      const name = state.chores.find(c => c.id === btn.dataset.choreId)?.name;
+      toast(`🌟 משימת היום: ${name}`); render(); break;
+    }
+    case 'week-prev': state.weekOffset--; render(); break;
+    case 'week-next': if (state.weekOffset < 0) { state.weekOffset++; render(); } break;
     case 'change-pin': state.pinSetupMode = true; navigate('pin'); break;
     case 'lock-parent': state.parentUnlocked = false; navigate('dashboard'); toast('🔒 מרכז הפיקוד ננעל'); break;
 
