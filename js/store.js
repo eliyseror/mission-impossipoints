@@ -71,8 +71,8 @@ const Store = {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   },
 
-  async addChore(name, points) {
-    return db.collection('chores').add({ name, points: Number(points), active: true });
+  async addChore(name, points, timeOfDay = 'morning') {
+    return db.collection('chores').add({ name, points: Number(points), timeOfDay, active: true });
   },
 
   async updateChore(id, data) {
@@ -249,11 +249,11 @@ const Store = {
   async seedDefaults() {
     const chores = await Store.getChores();
     if (chores.length === 0) {
-      await Store.addChore('לסדר את המיטה', 10);
-      await Store.addChore('לעשות שיעורי בית', 20);
-      await Store.addChore('לנקות את החדר', 15);
-      await Store.addChore('לעזור במטבח', 15);
-      await Store.addChore('לקרוא ספר', 20);
+      await Store.addChore('לסדר את המיטה', 10, 'morning');
+      await Store.addChore('לעשות שיעורי בית', 20, 'afternoon');
+      await Store.addChore('לנקות את החדר', 15, 'afternoon');
+      await Store.addChore('לעזור במטבח', 15, 'evening');
+      await Store.addChore('לקרוא ספר', 20, 'evening');
     }
     const prizes = await Store.getPrizes();
     if (prizes.length === 0) {

@@ -37,6 +37,11 @@ const SHOP_PRESETS = {
   snacks: ['במבה','ביסלי','שוקולד','עוגיות','חטיף','מים','מיץ','קולה','ספרייט','פופקורן','קרקר','אגוזים','חמאת בוטנים','ריבה','נוטלה','דבש'],
   other: ['קפה','תה','סוכר','מלח','שמן','חומץ','רוטב סויה','רוטב עגבניות','אורז','פסטה','קמח','שימורים','זיתים','טחינה','חומוס']
 };
+const TIME_SECTORS = [
+  { id: 'morning', label: 'בוקר', icon: '🌅' },
+  { id: 'afternoon', label: 'צהריים', icon: '☀️' },
+  { id: 'evening', label: 'ערב', icon: '🌙' }
+];
 const PRIORITY = { high:'🔴 דחוף', normal:'🟡 רגיל', low:'🟢 לא דחוף' };
 const EVENT_COLORS = ['#f0a500','#4ecca3','#e94560','#3b82f6','#a855f7','#ec4899'];
 
@@ -302,16 +307,20 @@ async function renderKid() {
 
   return `<div class="screen-content">
     <div class="points-display"><div class="points-number">${kid.points}</div><div class="points-label">⭐ נקודות</div></div>
-    <div class="section-title">🎯 משימות</div>
-    ${state.chores.filter(c => c.active !== false).map(chore => {
-      const isPending = pendingIds.includes(chore.id);
-      const isSpecial = chore.id === state.dailySpecialId;
-      const pts = isSpecial ? chore.points + DAILY_BONUS : chore.points;
-      return `<div class="mission-item ${isSpecial ? 'daily-special' : ''}">
-        ${isSpecial ? '<div class="daily-badge">🌟 משימת היום! +' + DAILY_BONUS + ' בונוס</div>' : ''}
-        <div class="mission-info"><div class="mission-name">${chore.name}</div><div class="mission-points">+${pts} נקודות${isSpecial ? ' ⚡' : ''}</div></div>
-        ${isPending ? `<span class="mission-btn pending">ממתין ⏳</span>` : `<button class="mission-btn" data-action="complete-chore" data-chore-id="${chore.id}">בוצע! ✓</button>`}
-      </div>`;
+    ${TIME_SECTORS.map(sector => {
+      const sectorChores = state.chores.filter(c => c.active !== false && (c.timeOfDay || 'morning') === sector.id);
+      if (sectorChores.length === 0) return '';
+      return `<div class="section-title">${sector.icon} ${sector.label}</div>
+      ${sectorChores.map(chore => {
+        const isPending = pendingIds.includes(chore.id);
+        const isSpecial = chore.id === state.dailySpecialId;
+        const pts = isSpecial ? chore.points + DAILY_BONUS : chore.points;
+        return `<div class="mission-item ${isSpecial ? 'daily-special' : ''}">
+          ${isSpecial ? '<div class="daily-badge">🌟 משימת היום! +' + DAILY_BONUS + ' בונוס</div>' : ''}
+          <div class="mission-info"><div class="mission-name">${chore.name}</div><div class="mission-points">+${pts} נקודות${isSpecial ? ' ⚡' : ''}</div></div>
+          ${isPending ? `<span class="mission-btn pending">ממתין ⏳</span>` : `<button class="mission-btn" data-action="complete-chore" data-chore-id="${chore.id}">בוצע! ✓</button>`}
+        </div>`;
+      }).join('')}`;
     }).join('')}
     <button class="btn btn-gold" style="margin-top:16px" data-action="go-shop-kid">🎁 חנות הפרסים</button>
     ${state.history.length > 0 ? `<div class="section-title" style="margin-top:24px">📋 היסטוריה</div>
@@ -731,14 +740,19 @@ function renderParentKids() {
 }
 
 function renderParentChores() {
-  return `${state.chores.map(c => `<div class="manage-item">
-    <span style="font-size:1.2rem">🎯</span>
-    <div class="manage-item-info"><div class="manage-item-name">${c.name}</div><div class="manage-item-detail">${c.points} נקודות</div></div>
-    <div class="manage-actions">
-      <button class="manage-btn manage-btn-edit" data-action="edit-chore" data-chore-id="${c.id}">✏️</button>
-      <button class="manage-btn manage-btn-delete" data-action="delete-chore" data-chore-id="${c.id}">🗑️</button>
-    </div>
-  </div>`).join('')}
+  return `${TIME_SECTORS.map(sector => {
+    const sectorChores = state.chores.filter(c => (c.timeOfDay || 'morning') === sector.id);
+    if (sectorChores.length === 0) return '';
+    return `<div class="section-title">${sector.icon} ${sector.label}</div>
+    ${sectorChores.map(c => `<div class="manage-item">
+      <span style="font-size:1.2rem">🎯</span>
+      <div class="manage-item-info"><div class="manage-item-name">${c.name}</div><div class="manage-item-detail">${c.points} נקודות</div></div>
+      <div class="manage-actions">
+        <button class="manage-btn manage-btn-edit" data-action="edit-chore" data-chore-id="${c.id}">✏️</button>
+        <button class="manage-btn manage-btn-delete" data-action="delete-chore" data-chore-id="${c.id}">🗑️</button>
+      </div>
+    </div>`).join('')}`;
+  }).join('')}
   <button class="btn btn-gold" style="margin-top:12px" data-action="add-chore">➕ הוסף משימה</button>`;
 }
 
@@ -1073,14 +1087,25 @@ function showKidModal(kidId) {
 
 function showChoreModal(choreId) {
   const chore = choreId ? state.chores.find(c=>c.id===choreId) : null;
+  const currentTime = chore ? (chore.timeOfDay || 'morning') : 'morning';
   showModal(`<div class="modal-title">${chore?'ערוך משימה':'הוסף משימה'}</div>
     <div class="form-group"><label class="form-label">שם המשימה</label><input class="form-input" id="modal-name" type="text" placeholder="למשל: לסדר את המיטה" value="${chore?chore.name:''}"></div>
     <div class="form-group"><label class="form-label">נקודות</label><input class="form-input" id="modal-points" type="number" placeholder="10" value="${chore?chore.points:''}" min="1" inputmode="numeric"></div>
+    <div class="form-group"><label class="form-label">זמן ביום</label>
+      <div class="time-sector-picker">
+        ${TIME_SECTORS.map(s => `<button class="time-sector-option ${s.id===currentTime?'selected':''}" data-time="${s.id}">${s.icon} ${s.label}</button>`).join('')}
+      </div>
+    </div>
     <div class="btn-row" style="margin-top:20px"><button class="btn btn-gold" id="modal-save">💾 שמור</button><button class="btn btn-outline" onclick="closeModal()">ביטול</button></div>`);
+  let chosenTime = currentTime;
+  document.querySelectorAll('.time-sector-option').forEach(o => o.addEventListener('click',()=>{
+    document.querySelectorAll('.time-sector-option').forEach(x=>x.classList.remove('selected'));
+    o.classList.add('selected'); chosenTime=o.dataset.time;
+  }));
   document.getElementById('modal-save').addEventListener('click', async()=>{
     const n=document.getElementById('modal-name').value.trim(), p=document.getElementById('modal-points').value;
     if(!n||!p) return toast('מלאו את כל השדות');
-    chore ? await Store.updateChore(choreId,{name:n,points:Number(p)}) : await Store.addChore(n,Number(p));
+    chore ? await Store.updateChore(choreId,{name:n,points:Number(p),timeOfDay:chosenTime}) : await Store.addChore(n,Number(p),chosenTime);
     await loadData(); closeModal(); render();
   });
 }
