@@ -114,11 +114,11 @@ const Store = {
   // ==================== History / Requests ====================
 
   async addRequest(kidId, kidName, itemId, itemName, type, points) {
-    if (type === 'chore') {
+    if (type === 'chore' || type === 'weekly') {
       const existing = await db.collection('history')
         .where('kidId', '==', kidId)
         .where('itemId', '==', itemId)
-        .where('type', '==', 'chore')
+        .where('type', '==', type)
         .where('status', '==', 'pending')
         .limit(1).get();
       if (!existing.empty) return;

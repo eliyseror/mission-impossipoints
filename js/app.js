@@ -355,13 +355,19 @@ async function renderKid() {
       const weekStart = currentWeekStart();
       const kidWeekly = state.weeklyMissions.filter(m => m.kidId === kid.id && m.weekStart === weekStart);
       if (kidWeekly.length === 0) return '';
+      const weeklyPendingIds = state.pending.filter(p => p.kidId === kid.id && p.type === 'weekly').map(p => p.itemId);
       return `<div class="section-title" style="margin-top:20px">🎖️ משימות אישיות השבוע</div>
-      ${kidWeekly.map(m => `<div class="mission-item weekly-mission ${m.done ? 'weekly-done' : ''}">
-        <div class="mission-info"><div class="mission-name">${m.title}</div><div class="mission-points">+${m.points} נקודות</div></div>
-        ${m.done
-          ? `<span class="mission-btn pending" style="background:var(--success)">הושלם ✓</span>`
-          : `<button class="mission-btn" data-action="complete-weekly-mission" data-id="${m.id}">בוצע! ✓</button>`}
-      </div>`).join('')}`;
+      ${kidWeekly.map(m => {
+        const isPending = weeklyPendingIds.includes(m.id);
+        return `<div class="mission-item weekly-mission ${m.done ? 'weekly-done' : ''}">
+          <div class="mission-info"><div class="mission-name">${m.title}</div><div class="mission-points">+${m.points} נקודות</div></div>
+          ${m.done
+            ? `<span class="mission-btn pending" style="background:var(--success)">הושלם ✓</span>`
+            : isPending
+              ? `<span class="mission-btn pending">ממתין ⏳</span>`
+              : `<button class="mission-btn" data-action="complete-weekly-mission" data-id="${m.id}">בוצע! ✓</button>`}
+        </div>`;
+      }).join('')}`;
     })()}
     <button class="btn btn-gold" style="margin-top:16px" data-action="go-shop-kid">🎁 חנות הפרסים</button>
     ${state.history.length > 0 ? `<div class="section-title" style="margin-top:24px">📋 היסטוריה</div>
@@ -816,7 +822,7 @@ async function renderParentInner() {
 function renderParentApprove() {
   if (!state.pending.length) return '<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-text">אין משימות ממתינות לאישור</div></div>';
   return state.pending.map(p => `<div class="pending-card">
-    <div class="pending-top"><span class="pending-kid">${p.kidName}</span><span class="pending-mission">${p.itemName}</span><span class="pending-points">+${p.points} ⭐</span></div>
+    <div class="pending-top"><span class="pending-kid">${p.kidName}</span><span class="pending-type">${p.type==='weekly'?'🎖️':'🎯'}</span><span class="pending-mission">${p.itemName}</span><span class="pending-points">+${p.points} ⭐</span></div>
     <div class="btn-row">
       <button class="btn btn-success btn-sm" data-action="approve" data-id="${p.id}" data-kid-id="${p.kidId}" data-points="${p.points}">✓ אשר</button>
       <button class="btn btn-danger btn-sm" data-action="reject" data-id="${p.id}">✗ דחה</button>
@@ -1105,9 +1111,15 @@ async function handleClick(e) {
 
     // Parent Panel
     case 'parent-tab': state.parentTab = btn.dataset.tab; render(); break;
-    case 'approve':
-      await Store.approveRequest(btn.dataset.id, btn.dataset.kidId, Number(btn.dataset.points));
+    case 'approve': {
+      const reqId = btn.dataset.id;
+      const req = state.pending.find(p => p.id === reqId);
+      await Store.approveRequest(reqId, btn.dataset.kidId, Number(btn.dataset.points));
+      if (req && req.type === 'weekly') {
+        await Store.toggleWeeklyMission(req.itemId, true);
+      }
       await loadData(); celebrate('stars'); toast('✓ אושר!'); render(); break;
+    }
     case 'reject':
       await Store.rejectRequest(btn.dataset.id);
       await loadData(); playSound('reject'); toast('✗ נדחה'); render(); break;
@@ -1169,12 +1181,15 @@ async function handleClick(e) {
       if (confirm('למחוק משימה?')) { await Store.deleteWeeklyMission(btn.dataset.id); await loadData(); render(); } break;
     case 'complete-weekly-mission': {
       const wm = state.weeklyMissions.find(m => m.id === btn.dataset.id);
-      if (wm && !wm.done) {
+      const kid = state.kids.find(k => k.id === wm?.kidId);
+      if (wm && kid && !wm.done) {
+        const alreadyPending = state.pending.some(p => p.kidId === kid.id && p.itemId === wm.id && p.type === 'weekly');
+        if (alreadyPending) { toast('⏳ המשימה כבר נשלחה לאישור'); break; }
         btn.disabled = true;
-        await Store.toggleWeeklyMission(wm.id, true);
-        await Store.addPoints(wm.kidId, wm.points);
-        await loadData(); celebrate('stars');
-        toast(`🎖️ משימה אישית הושלמה! +${wm.points} ⭐`);
+        btn.textContent = '⏳';
+        await Store.addRequest(kid.id, kid.name, wm.id, wm.title, 'weekly', wm.points);
+        await loadData();
+        toast('✓ נשלח לאישור ההורים');
         render();
       } break;
     }
