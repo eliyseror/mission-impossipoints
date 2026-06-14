@@ -118,8 +118,11 @@ async function loadData() {
   await loadDailySpecial();
 }
 
-function getSuccessPoints(typeId) {
-  return state.successPoints[typeId] !== undefined ? state.successPoints[typeId] : SUCCESS_TYPES.find(t => t.id === typeId)?.points || 5;
+function getSuccessPoints(typeId, kidId) {
+  const kid = kidId || state.kidId;
+  const kidConfig = kid && state.successPoints[kid];
+  if (kidConfig && kidConfig[typeId] !== undefined) return kidConfig[typeId];
+  return SUCCESS_TYPES.find(t => t.id === typeId)?.points || 5;
 }
 
 // ==================== Navigation ====================
@@ -489,7 +492,7 @@ async function renderSuccesses() {
     <div class="success-grid">
       ${SUCCESS_TYPES.map(type => {
         const count = countsMap[type.id] || 0;
-        const pts = getSuccessPoints(type.id);
+        const pts = getSuccessPoints(type.id, kid.id);
         return `<div class="success-card" data-action="log-success" data-type="${type.id}" data-kid-id="${kid.id}">
           <div class="success-card-icon">${type.icon}</div>
           <div class="success-card-name">${type.name}</div>
@@ -854,23 +857,33 @@ function renderParentPrizes() {
 }
 
 function renderParentSuccesses() {
+  if (!state.kids.length) return '<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-text">הוסיפו ילדים קודם</div></div>';
   return `<div class="section-title">🏆 הגדרת נקודות להצלחות</div>
-    <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:16px">כמה נקודות כל הצלחה שווה?</p>
-    ${SUCCESS_TYPES.map(type => {
-      const pts = getSuccessPoints(type.id);
-      return `<div class="manage-item" style="flex-wrap:wrap;gap:8px">
-        <span style="font-size:1.5rem">${type.icon}</span>
-        <div class="manage-item-info">
-          <div class="manage-item-name">${type.name}</div>
-          <div class="manage-item-detail">${type.desc}</div>
+    <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:16px">כמה נקודות כל הצלחה שווה — לכל ילד/ה בנפרד</p>
+    ${state.kids.map(kid => `
+      <div class="week-kid-card" style="margin-bottom:14px">
+        <div class="week-kid-header">
+          <span class="week-kid-avatar">${kid.icon}</span>
+          <span class="week-kid-name">${kid.name}</span>
         </div>
-        <div class="success-points-control">
-          <button class="btn btn-outline btn-sm" data-action="success-pts-down" data-type="${type.id}" style="width:36px;padding:6px">−</button>
-          <span class="success-pts-value">${pts}</span>
-          <button class="btn btn-outline btn-sm" data-action="success-pts-up" data-type="${type.id}" style="width:36px;padding:6px">+</button>
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+          ${SUCCESS_TYPES.map(type => {
+            const pts = getSuccessPoints(type.id, kid.id);
+            return `<div class="manage-item" style="margin-bottom:0">
+              <span style="font-size:1.3rem">${type.icon}</span>
+              <div class="manage-item-info">
+                <div class="manage-item-name" style="font-size:0.85rem">${type.name}</div>
+              </div>
+              <div class="success-points-control">
+                <button class="btn btn-outline btn-sm" data-action="success-pts-down" data-type="${type.id}" data-kid-id="${kid.id}" style="width:32px;padding:4px">−</button>
+                <span class="success-pts-value">${pts}</span>
+                <button class="btn btn-outline btn-sm" data-action="success-pts-up" data-type="${type.id}" data-kid-id="${kid.id}" style="width:32px;padding:4px">+</button>
+              </div>
+            </div>`;
+          }).join('')}
         </div>
-      </div>`;
-    }).join('')}
+      </div>
+    `).join('')}
   `;
 }
 
@@ -1109,15 +1122,19 @@ async function handleClick(e) {
     case 'success-kid': state.kidId = btn.dataset.kidId; render(); break;
     case 'success-pts-up': {
       const t = btn.dataset.type;
-      state.successPoints[t] = (getSuccessPoints(t)) + 1;
-      await Store.setSuccessPoints(state.successPoints);
+      const kid = btn.dataset.kidId;
+      if (!state.successPoints[kid]) state.successPoints[kid] = {};
+      state.successPoints[kid][t] = getSuccessPoints(t, kid) + 1;
+      await Store.setSuccessPointsForKid(kid, state.successPoints[kid]);
       render(); break;
     }
     case 'success-pts-down': {
       const t = btn.dataset.type;
-      const current = getSuccessPoints(t);
-      if (current > 1) { state.successPoints[t] = current - 1; }
-      await Store.setSuccessPoints(state.successPoints);
+      const kid = btn.dataset.kidId;
+      if (!state.successPoints[kid]) state.successPoints[kid] = {};
+      const current = getSuccessPoints(t, kid);
+      if (current > 1) { state.successPoints[kid][t] = current - 1; }
+      await Store.setSuccessPointsForKid(kid, state.successPoints[kid]);
       render(); break;
     }
     case 'log-success': {
@@ -1126,7 +1143,7 @@ async function handleClick(e) {
       const successType = SUCCESS_TYPES.find(t => t.id === type);
       if (successType && kidId) {
         btn.disabled = true;
-        const pts = getSuccessPoints(type);
+        const pts = getSuccessPoints(type, kidId);
         const newCount = await Store.addSuccess(kidId, type, todayStr());
         await Store.addPoints(kidId, pts);
         await loadData();

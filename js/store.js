@@ -21,12 +21,14 @@ const Store = {
   },
 
   async getSuccessPoints() {
-    const doc = await db.collection('config').doc('successPoints').get();
-    return doc.exists ? doc.data() : null;
+    const snap = await db.collection('config').doc('successPoints').get();
+    return snap.exists ? snap.data() : {};
   },
 
-  async setSuccessPoints(pointsMap) {
-    return db.collection('config').doc('successPoints').set(pointsMap);
+  async setSuccessPointsForKid(kidId, pointsMap) {
+    return db.collection('config').doc('successPoints').set(
+      { [kidId]: pointsMap }, { merge: true }
+    );
   },
 
   async getWeekHistory(startDate, endDate) {
