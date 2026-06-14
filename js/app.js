@@ -918,6 +918,10 @@ async function handleClick(e) {
       const chore = state.chores.find(c => c.id === btn.dataset.choreId);
       const kid = state.kids.find(k => k.id === state.kidId);
       if (chore && kid) {
+        const alreadyPending = state.pending.some(p => p.kidId === kid.id && p.itemId === chore.id && p.type === 'chore');
+        if (alreadyPending) { toast('⏳ המשימה כבר נשלחה לאישור'); break; }
+        btn.disabled = true;
+        btn.textContent = '⏳';
         const isSpecial = chore.id === state.dailySpecialId;
         const pts = isSpecial ? chore.points + DAILY_BONUS : chore.points;
         await Store.addRequest(kid.id, kid.name, chore.id, chore.name, 'chore', pts);

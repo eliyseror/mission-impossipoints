@@ -103,6 +103,15 @@ const Store = {
   // ==================== History / Requests ====================
 
   async addRequest(kidId, kidName, itemId, itemName, type, points) {
+    if (type === 'chore') {
+      const existing = await db.collection('history')
+        .where('kidId', '==', kidId)
+        .where('itemId', '==', itemId)
+        .where('type', '==', 'chore')
+        .where('status', '==', 'pending')
+        .limit(1).get();
+      if (!existing.empty) return;
+    }
     return db.collection('history').add({
       kidId, kidName, itemId, itemName, type,
       points: Number(points),
