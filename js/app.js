@@ -448,33 +448,18 @@ async function renderSuccesses() {
     return `<div class="screen-content"><div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-text">הוסיפו ילדים קודם במרכז הפיקוד</div></div></div>`;
   }
 
-  if (state.kids.length === 1) {
+  if (!state.kidId || !state.kids.find(k => k.id === state.kidId)) {
     state.kidId = state.kids[0].id;
   }
 
-  if (!state.kidId) {
-    return `<div class="screen-content">
-      <div class="section-title">🏆 בחרו סוכן/ת</div>
-      <div class="kids-grid">
-        ${state.kids.map(kid => `
-          <div class="card kid-card" data-action="success-kid" data-kid-id="${kid.id}">
-            <div class="card-row">
-              <div class="card-icon">${kid.icon}</div>
-              <div class="card-info"><div class="card-name">${kid.name}</div></div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>`;
-  }
-
   const kid = state.kids.find(k => k.id === state.kidId);
-  const today = todayStr();
-  const todaySuccesses = await Store.getSuccesses(kid.id, today);
-  const countsMap = {};
-  todaySuccesses.forEach(s => { countsMap[s.type] = s.count || 0; });
-
-  const totalToday = Object.values(countsMap).reduce((a, b) => a + b, 0);
+  let countsMap = {};
+  let totalToday = 0;
+  try {
+    const todaySuccesses = await Store.getSuccesses(kid.id, todayStr());
+    todaySuccesses.forEach(s => { countsMap[s.type] = s.count || 0; });
+    totalToday = Object.values(countsMap).reduce((a, b) => a + b, 0);
+  } catch(e) { console.error('Error loading successes:', e); }
 
   return `<div class="screen-content">
     ${state.kids.length > 1 ? `

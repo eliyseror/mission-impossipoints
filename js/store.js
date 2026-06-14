@@ -267,11 +267,11 @@ const Store = {
   // ==================== Successes (הצלחות) ====================
 
   async getSuccesses(kidId, date) {
-    const snap = await db.collection('successes')
-      .where('kidId', '==', kidId)
-      .where('date', '==', date)
-      .get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const types = ['stop', 'investigator', 'timer', 'effort', 'friendship'];
+    const docs = await Promise.all(
+      types.map(type => db.collection('successes').doc(`${kidId}_${type}_${date}`).get())
+    );
+    return docs.filter(d => d.exists).map(d => ({ id: d.id, ...d.data() }));
   },
 
   async addSuccess(kidId, type, date) {
