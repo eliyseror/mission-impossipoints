@@ -264,6 +264,34 @@ const Store = {
 
   async deleteMessage(id) { return db.collection('messages').doc(id).delete(); },
 
+  // ==================== Weekly Missions (משימות שבועיות) ====================
+
+  async getWeeklyMissions() {
+    const snap = await db.collection('weeklyMissions').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async addWeeklyMission(kidId, title, points, weekStart) {
+    return db.collection('weeklyMissions').add({
+      kidId, title, points: Number(points), weekStart,
+      done: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  },
+
+  async toggleWeeklyMission(id, done) {
+    return db.collection('weeklyMissions').doc(id).update({ done });
+  },
+
+  async updateWeeklyMission(id, data) {
+    if (data.points) data.points = Number(data.points);
+    return db.collection('weeklyMissions').doc(id).update(data);
+  },
+
+  async deleteWeeklyMission(id) {
+    return db.collection('weeklyMissions').doc(id).delete();
+  },
+
   // ==================== Successes (הצלחות) ====================
 
   async getSuccesses(kidId, date) {

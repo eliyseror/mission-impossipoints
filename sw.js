@@ -1,4 +1,4 @@
-const CACHE_NAME = 'impossipoints-v13';
+const CACHE_NAME = 'impossipoints-v14';
 const ASSETS = [
   './',
   './index.html',

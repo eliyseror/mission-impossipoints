@@ -1383,6 +1383,21 @@ body {
 .meal-type { flex-shrink: 0; }
 .meal-desc { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ==================== Weekly Missions ==================== */
+
+.weekly-mission {
+  border-right: 4px solid var(--gold);
+}
+
+.weekly-mission.weekly-done {
+  opacity: 0.5;
+  border-right-color: var(--success);
+}
+
+.weekly-mission.weekly-done .mission-name {
+  text-decoration: line-through;
+}
+
 /* ==================== Successes (הצלחות) ==================== */
 
 .success-header {

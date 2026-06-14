@@ -15,7 +15,8 @@ const state = {
   kids: [], chores: [], prizes: [], pending: [], history: [],
   shoppingItems: [], tasks: [], events: [], meals: [], messages: [],
   successes: [],
-  successPoints: {}
+  successPoints: {},
+  weeklyMissions: []
 };
 
 const AVATARS = ['🕵️','🦸','🥷','🦊','🐱','🦁','🐯','🐻','🦄','🚀','👾','🤖','🎯','⭐','🐶','🐰'];
@@ -72,6 +73,15 @@ async function loadDailySpecial() {
   }
 }
 
+function currentWeekStart() {
+  const now = new Date();
+  const day = now.getDay();
+  const start = new Date(now);
+  start.setDate(now.getDate() - day);
+  start.setHours(0,0,0,0);
+  return dateStr(start);
+}
+
 function getWeekRange(offset = 0) {
   const now = new Date();
   const day = now.getDay();
@@ -108,12 +118,12 @@ async function init() {
 }
 
 async function loadData() {
-  const [kids, chores, prizes, pending, shoppingItems, tasks, events, meals, messages, successPoints] = await Promise.all([
+  const [kids, chores, prizes, pending, shoppingItems, tasks, events, meals, messages, successPoints, weeklyMissions] = await Promise.all([
     Store.getKids(), Store.getChores(), Store.getPrizes(), Store.getPending(),
     Store.getShoppingItems(), Store.getTasks(), Store.getEvents(), Store.getMeals(), Store.getMessages(),
-    Store.getSuccessPoints()
+    Store.getSuccessPoints(), Store.getWeeklyMissions()
   ]);
-  Object.assign(state, { kids, chores, prizes, pending, shoppingItems, tasks, events, meals, messages });
+  Object.assign(state, { kids, chores, prizes, pending, shoppingItems, tasks, events, meals, messages, weeklyMissions });
   state.successPoints = successPoints || {};
   await loadDailySpecial();
 }
@@ -341,6 +351,18 @@ async function renderKid() {
         </div>`;
       }).join('')}`;
     }).join('')}
+    ${(() => {
+      const weekStart = currentWeekStart();
+      const kidWeekly = state.weeklyMissions.filter(m => m.kidId === kid.id && m.weekStart === weekStart);
+      if (kidWeekly.length === 0) return '';
+      return `<div class="section-title" style="margin-top:20px">🎖️ משימות אישיות השבוע</div>
+      ${kidWeekly.map(m => `<div class="mission-item weekly-mission ${m.done ? 'weekly-done' : ''}">
+        <div class="mission-info"><div class="mission-name">${m.title}</div><div class="mission-points">+${m.points} נקודות</div></div>
+        ${m.done
+          ? `<span class="mission-btn pending" style="background:var(--success)">הושלם ✓</span>`
+          : `<button class="mission-btn" data-action="complete-weekly-mission" data-id="${m.id}">בוצע! ✓</button>`}
+      </div>`).join('')}`;
+    })()}
     <button class="btn btn-gold" style="margin-top:16px" data-action="go-shop-kid">🎁 חנות הפרסים</button>
     ${state.history.length > 0 ? `<div class="section-title" style="margin-top:24px">📋 היסטוריה</div>
       ${state.history.slice(0,15).map(h => `<div class="history-item">
@@ -766,6 +788,7 @@ async function renderParentInner() {
     { id:'approve', label:`אישור (${state.pending.length})`, icon:'✓' },
     { id:'kids', label:'ילדים', icon:'👤' },
     { id:'chores', label:'משימות', icon:'🎯' },
+    { id:'weeklyMissions', label:'אישיות', icon:'🎖️' },
     { id:'prizes', label:'פרסים', icon:'🎁' },
     { id:'successes', label:'הצלחות', icon:'🏆' },
     { id:'points', label:'נקודות', icon:'⭐' },
@@ -777,6 +800,7 @@ async function renderParentInner() {
     case 'approve': content = renderParentApprove(); break;
     case 'kids': content = renderParentKids(); break;
     case 'chores': content = renderParentChores(); break;
+    case 'weeklyMissions': content = renderParentWeeklyMissions(); break;
     case 'prizes': content = renderParentPrizes(); break;
     case 'successes': content = renderParentSuccesses(); break;
     case 'points': content = renderParentPoints(); break;
@@ -839,6 +863,41 @@ function renderParentPrizes() {
     </div>
   </div>`).join('')}
   <button class="btn btn-gold" style="margin-top:12px" data-action="add-prize">➕ הוסף פרס</button>`;
+}
+
+function renderParentWeeklyMissions() {
+  if (!state.kids.length) return '<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-text">הוסיפו ילדים קודם</div></div>';
+  const weekStart = currentWeekStart();
+  const currentMissions = state.weeklyMissions.filter(m => m.weekStart === weekStart);
+
+  return `<div class="section-title">🎖️ משימות אישיות לשבוע</div>
+    <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:16px">משימות ייחודיות לכל ילד/ה — מתאפסות כל שבוע</p>
+    ${state.kids.map(kid => {
+      const kidMissions = currentMissions.filter(m => m.kidId === kid.id);
+      return `<div class="week-kid-card" style="margin-bottom:14px">
+        <div class="week-kid-header">
+          <span class="week-kid-avatar">${kid.icon}</span>
+          <span class="week-kid-name">${kid.name}</span>
+          <span class="week-kid-summary">${kidMissions.length} משימות</span>
+        </div>
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+          ${kidMissions.length === 0 ? '<div style="color:var(--text-dim);font-size:0.85rem;text-align:center;padding:8px">אין משימות השבוע</div>' : ''}
+          ${kidMissions.map(m => `<div class="manage-item" style="margin-bottom:0">
+            <span style="font-size:1.2rem">${m.done ? '✅' : '🎖️'}</span>
+            <div class="manage-item-info">
+              <div class="manage-item-name">${m.title}</div>
+              <div class="manage-item-detail">${m.points} נקודות${m.done ? ' · הושלם ✓' : ''}</div>
+            </div>
+            <div class="manage-actions">
+              <button class="manage-btn manage-btn-edit" data-action="edit-weekly-mission" data-id="${m.id}">✏️</button>
+              <button class="manage-btn manage-btn-delete" data-action="delete-weekly-mission" data-id="${m.id}">🗑️</button>
+            </div>
+          </div>`).join('')}
+          <button class="btn btn-outline btn-sm" style="margin-top:4px" data-action="add-weekly-mission" data-kid-id="${kid.id}">➕ הוסף משימה ל${kid.name}</button>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
 }
 
 function renderParentSuccesses() {
@@ -1103,6 +1162,23 @@ async function handleClick(e) {
     case 'change-pin': state.pinSetupMode = true; navigate('pin'); break;
     case 'lock-parent': state.parentUnlocked = false; navigate('dashboard'); toast('🔒 מרכז הפיקוד ננעל'); break;
 
+    // Weekly Missions
+    case 'add-weekly-mission': showWeeklyMissionModal(btn.dataset.kidId); break;
+    case 'edit-weekly-mission': showWeeklyMissionModal(null, btn.dataset.id); break;
+    case 'delete-weekly-mission':
+      if (confirm('למחוק משימה?')) { await Store.deleteWeeklyMission(btn.dataset.id); await loadData(); render(); } break;
+    case 'complete-weekly-mission': {
+      const wm = state.weeklyMissions.find(m => m.id === btn.dataset.id);
+      if (wm && !wm.done) {
+        btn.disabled = true;
+        await Store.toggleWeeklyMission(wm.id, true);
+        await Store.addPoints(wm.kidId, wm.points);
+        await loadData(); celebrate('stars');
+        toast(`🎖️ משימה אישית הושלמה! +${wm.points} ⭐`);
+        render();
+      } break;
+    }
+
     // Successes
     case 'success-kid': state.kidId = btn.dataset.kidId; render(); break;
     case 'success-pts-up': {
@@ -1316,6 +1392,28 @@ function showMealModal(date, type) {
     if(!d) return toast('מה אוכלים?');
     await Store.setMeal(date, type, d);
     await loadData(); closeModal(); playSound('tap'); render();
+  });
+}
+
+// ==================== Weekly Mission Modal ====================
+
+function showWeeklyMissionModal(kidId, missionId) {
+  const mission = missionId ? state.weeklyMissions.find(m => m.id === missionId) : null;
+  const kid = state.kids.find(k => k.id === (mission ? mission.kidId : kidId));
+  showModal(`<div class="modal-title">${mission ? 'ערוך משימה אישית' : `🎖️ משימה חדשה ל${kid.name}`}</div>
+    <div class="form-group"><label class="form-label">תיאור המשימה</label><input class="form-input" id="modal-title" type="text" placeholder="למשל: לקרוא 3 פרקים בספר" value="${mission ? mission.title : ''}"></div>
+    <div class="form-group"><label class="form-label">נקודות</label><input class="form-input" id="modal-points" type="number" placeholder="20" value="${mission ? mission.points : ''}" min="1" inputmode="numeric"></div>
+    <div class="btn-row" style="margin-top:20px"><button class="btn btn-gold" id="modal-save">💾 שמור</button><button class="btn btn-outline" onclick="closeModal()">ביטול</button></div>`);
+  document.getElementById('modal-save').addEventListener('click', async () => {
+    const title = document.getElementById('modal-title').value.trim();
+    const points = document.getElementById('modal-points').value;
+    if (!title || !points) return toast('מלאו את כל השדות');
+    if (mission) {
+      await Store.updateWeeklyMission(missionId, { title, points: Number(points) });
+    } else {
+      await Store.addWeeklyMission(kid.id, title, Number(points), currentWeekStart());
+    }
+    await loadData(); closeModal(); render();
   });
 }
 
