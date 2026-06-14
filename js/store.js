@@ -20,6 +20,15 @@ const Store = {
     return db.collection('config').doc('dailySpecial').set({ choreId, date });
   },
 
+  async getSuccessPoints() {
+    const doc = await db.collection('config').doc('successPoints').get();
+    return doc.exists ? doc.data() : null;
+  },
+
+  async setSuccessPoints(pointsMap) {
+    return db.collection('config').doc('successPoints').set(pointsMap);
+  },
+
   async getWeekHistory(startDate, endDate) {
     const snap = await db.collection('history')
       .where('status', '==', 'approved')
@@ -252,6 +261,30 @@ const Store = {
   },
 
   async deleteMessage(id) { return db.collection('messages').doc(id).delete(); },
+
+  // ==================== Successes (הצלחות) ====================
+
+  async getSuccesses(kidId, date) {
+    const snap = await db.collection('successes')
+      .where('kidId', '==', kidId)
+      .where('date', '==', date)
+      .get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async addSuccess(kidId, type, date) {
+    const key = `${kidId}_${type}_${date}`;
+    const docRef = db.collection('successes').doc(key);
+    const doc = await docRef.get();
+    if (doc.exists) {
+      const newCount = (doc.data().count || 0) + 1;
+      await docRef.update({ count: newCount });
+      return newCount;
+    } else {
+      await docRef.set({ kidId, type, date, count: 1 });
+      return 1;
+    }
+  },
 
   // ==================== Seed Default Data ====================
 

@@ -13,7 +13,9 @@ const state = {
   dailySpecialId: null,
   weekOffset: 0,
   kids: [], chores: [], prizes: [], pending: [], history: [],
-  shoppingItems: [], tasks: [], events: [], meals: [], messages: []
+  shoppingItems: [], tasks: [], events: [], meals: [], messages: [],
+  successes: [],
+  successPoints: {}
 };
 
 const AVATARS = ['🕵️','🦸','🥷','🦊','🐱','🦁','🐯','🐻','🦄','🚀','👾','🤖','🎯','⭐','🐶','🐰'];
@@ -41,6 +43,13 @@ const TIME_SECTORS = [
   { id: 'morning', label: 'בוקר', icon: '🌅' },
   { id: 'afternoon', label: 'צהריים', icon: '☀️' },
   { id: 'evening', label: 'ערב', icon: '🌙' }
+];
+const SUCCESS_TYPES = [
+  { id: 'stop', name: 'מר עצור', icon: '🛑', desc: 'עצרתי והתאפקתי', points: 5 },
+  { id: 'investigator', name: 'מר בודק/ת', icon: '🔍', desc: 'בדקתי וחקרתי', points: 5 },
+  { id: 'timer', name: 'מר טיימר', icon: '⏳', desc: 'השתמשתי בטיימר', points: 5 },
+  { id: 'effort', name: 'מר מאמץ', icon: '💪', desc: 'התאמצתי פיזית', points: 5 },
+  { id: 'friendship', name: 'מר חברות', icon: '🤝', desc: 'הייתי חבר/ה טוב/ה', points: 5 }
 ];
 const PRIORITY = { high:'🔴 דחוף', normal:'🟡 רגיל', low:'🟢 לא דחוף' };
 const EVENT_COLORS = ['#f0a500','#4ecca3','#e94560','#3b82f6','#a855f7','#ec4899'];
@@ -99,12 +108,18 @@ async function init() {
 }
 
 async function loadData() {
-  const [kids, chores, prizes, pending, shoppingItems, tasks, events, meals, messages] = await Promise.all([
+  const [kids, chores, prizes, pending, shoppingItems, tasks, events, meals, messages, successPoints] = await Promise.all([
     Store.getKids(), Store.getChores(), Store.getPrizes(), Store.getPending(),
-    Store.getShoppingItems(), Store.getTasks(), Store.getEvents(), Store.getMeals(), Store.getMessages()
+    Store.getShoppingItems(), Store.getTasks(), Store.getEvents(), Store.getMeals(), Store.getMessages(),
+    Store.getSuccessPoints()
   ]);
   Object.assign(state, { kids, chores, prizes, pending, shoppingItems, tasks, events, meals, messages });
+  state.successPoints = successPoints || {};
   await loadDailySpecial();
+}
+
+function getSuccessPoints(typeId) {
+  return state.successPoints[typeId] !== undefined ? state.successPoints[typeId] : SUCCESS_TYPES.find(t => t.id === typeId)?.points || 5;
 }
 
 // ==================== Navigation ====================
@@ -129,7 +144,7 @@ function navigate(screen, data = {}) {
 }
 
 function updateNavActive(screen) {
-  const map = { kid:'rewards', 'shop-kid':'rewards', pin:'more', parent:'more' };
+  const map = { kid:'rewards', 'shop-kid':'rewards', pin:'more', parent:'more', calendar:'more' };
   const base = map[screen] || screen;
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.screen === base);
@@ -139,7 +154,7 @@ function updateNavActive(screen) {
 
   const titles = {
     dashboard:'Mission Impossipoints', rewards:'הסוכנים', kid: state.kids.find(k=>k.id===state.kidId)?.name||'סוכן',
-    shop:'חנות הפרסים', 'shop-kid':'חנות הפרסים', shopping:'רשימת קניות', calendar:'יומן משפחתי',
+    shop:'חנות הפרסים', 'shop-kid':'חנות הפרסים', successes:'הצלחות', shopping:'רשימת קניות', calendar:'יומן משפחתי',
     more:'עוד', pin: state.pinSetupMode?'הגדרת קוד סודי':'קוד סודי', parent:'מרכז הפיקוד'
   };
   document.getElementById('header-title').textContent = titles[screen] || 'Mission Impossipoints';
@@ -165,6 +180,7 @@ async function render() {
     case 'rewards': main.innerHTML = renderRewards(); break;
     case 'kid': main.innerHTML = await renderKid(); break;
     case 'shop-kid': main.innerHTML = renderShopKid(); break;
+    case 'successes': main.innerHTML = await renderSuccesses(); break;
     case 'shopping': main.innerHTML = renderShopping(); break;
     case 'calendar': main.innerHTML = renderCalendar(); break;
     case 'more': main.innerHTML = renderMore(); break;
@@ -422,6 +438,71 @@ function renderShopPresets(existingNames) {
   `).join('');
 }
 
+// ==================== Successes (הצלחות) ====================
+
+async function renderSuccesses() {
+  if (state.kids.length === 0) {
+    return `<div class="screen-content"><div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-text">הוסיפו ילדים קודם במרכז הפיקוד</div></div></div>`;
+  }
+
+  if (state.kids.length === 1) {
+    state.kidId = state.kids[0].id;
+  }
+
+  if (!state.kidId) {
+    return `<div class="screen-content">
+      <div class="section-title">🏆 בחרו סוכן/ת</div>
+      <div class="kids-grid">
+        ${state.kids.map(kid => `
+          <div class="card kid-card" data-action="success-kid" data-kid-id="${kid.id}">
+            <div class="card-row">
+              <div class="card-icon">${kid.icon}</div>
+              <div class="card-info"><div class="card-name">${kid.name}</div></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+
+  const kid = state.kids.find(k => k.id === state.kidId);
+  const today = todayStr();
+  const todaySuccesses = await Store.getSuccesses(kid.id, today);
+  const countsMap = {};
+  todaySuccesses.forEach(s => { countsMap[s.type] = s.count || 0; });
+
+  const totalToday = Object.values(countsMap).reduce((a, b) => a + b, 0);
+
+  return `<div class="screen-content">
+    ${state.kids.length > 1 ? `
+      <div class="kid-select">
+        ${state.kids.map(k => `<button class="kid-chip ${k.id===state.kidId?'active':''}" data-action="success-kid" data-kid-id="${k.id}">${k.icon} ${k.name}</button>`).join('')}
+      </div>
+    ` : ''}
+    <div class="success-header">
+      <div class="success-header-icon">${kid.icon}</div>
+      <div class="success-header-info">
+        <div class="success-header-name">${kid.name}</div>
+        <div class="success-header-today">🏆 ${totalToday} הצלחות היום</div>
+      </div>
+    </div>
+    <div class="success-grid">
+      ${SUCCESS_TYPES.map(type => {
+        const count = countsMap[type.id] || 0;
+        const pts = getSuccessPoints(type.id);
+        return `<div class="success-card" data-action="log-success" data-type="${type.id}" data-kid-id="${kid.id}">
+          <div class="success-card-icon">${type.icon}</div>
+          <div class="success-card-name">${type.name}</div>
+          <div class="success-card-desc">${type.desc}</div>
+          <div class="success-card-count">${count}</div>
+          <div class="success-card-points">+${pts} ⭐</div>
+          <button class="success-card-btn" data-action="log-success" data-type="${type.id}" data-kid-id="${kid.id}">הצלחתי! ✓</button>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
 // ==================== Calendar ====================
 
 function renderCalendar() {
@@ -516,12 +597,14 @@ function renderMore() {
   const tabs = [
     { id:'tasks', label:'משימות', icon:'📋' },
     { id:'messages', label:'הודעות', icon:'📌' },
+    { id:'calendar', label:'יומן', icon:'📅' },
     { id:'parent', label:'מרכז פיקוד', icon:'🔐' }
   ];
   let content = '';
   switch(state.moreTab) {
     case 'tasks': content = renderTasks(); break;
     case 'messages': content = renderMessages(); break;
+    case 'calendar': navigate('calendar'); return '';
     case 'parent': content = state.parentUnlocked ? '' : ''; break;
   }
 
@@ -696,6 +779,7 @@ async function renderParentInner() {
     { id:'kids', label:'ילדים', icon:'👤' },
     { id:'chores', label:'משימות', icon:'🎯' },
     { id:'prizes', label:'פרסים', icon:'🎁' },
+    { id:'successes', label:'הצלחות', icon:'🏆' },
     { id:'points', label:'נקודות', icon:'⭐' },
     { id:'weekly', label:'שבועי', icon:'📊' },
     { id:'settings', label:'הגדרות', icon:'⚙️' }
@@ -706,6 +790,7 @@ async function renderParentInner() {
     case 'kids': content = renderParentKids(); break;
     case 'chores': content = renderParentChores(); break;
     case 'prizes': content = renderParentPrizes(); break;
+    case 'successes': content = renderParentSuccesses(); break;
     case 'points': content = renderParentPoints(); break;
     case 'weekly': content = await renderParentWeekly(); break;
     case 'settings': content = renderParentSettings(); break;
@@ -766,6 +851,27 @@ function renderParentPrizes() {
     </div>
   </div>`).join('')}
   <button class="btn btn-gold" style="margin-top:12px" data-action="add-prize">➕ הוסף פרס</button>`;
+}
+
+function renderParentSuccesses() {
+  return `<div class="section-title">🏆 הגדרת נקודות להצלחות</div>
+    <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:16px">כמה נקודות כל הצלחה שווה?</p>
+    ${SUCCESS_TYPES.map(type => {
+      const pts = getSuccessPoints(type.id);
+      return `<div class="manage-item" style="flex-wrap:wrap;gap:8px">
+        <span style="font-size:1.5rem">${type.icon}</span>
+        <div class="manage-item-info">
+          <div class="manage-item-name">${type.name}</div>
+          <div class="manage-item-detail">${type.desc}</div>
+        </div>
+        <div class="success-points-control">
+          <button class="btn btn-outline btn-sm" data-action="success-pts-down" data-type="${type.id}" style="width:36px;padding:6px">−</button>
+          <span class="success-pts-value">${pts}</span>
+          <button class="btn btn-outline btn-sm" data-action="success-pts-up" data-type="${type.id}" style="width:36px;padding:6px">+</button>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
 }
 
 function renderParentPoints() {
@@ -998,6 +1104,37 @@ async function handleClick(e) {
     }
     case 'change-pin': state.pinSetupMode = true; navigate('pin'); break;
     case 'lock-parent': state.parentUnlocked = false; navigate('dashboard'); toast('🔒 מרכז הפיקוד ננעל'); break;
+
+    // Successes
+    case 'success-kid': state.kidId = btn.dataset.kidId; render(); break;
+    case 'success-pts-up': {
+      const t = btn.dataset.type;
+      state.successPoints[t] = (getSuccessPoints(t)) + 1;
+      await Store.setSuccessPoints(state.successPoints);
+      render(); break;
+    }
+    case 'success-pts-down': {
+      const t = btn.dataset.type;
+      const current = getSuccessPoints(t);
+      if (current > 1) { state.successPoints[t] = current - 1; }
+      await Store.setSuccessPoints(state.successPoints);
+      render(); break;
+    }
+    case 'log-success': {
+      const type = btn.dataset.type;
+      const kidId = btn.dataset.kidId;
+      const successType = SUCCESS_TYPES.find(t => t.id === type);
+      if (successType && kidId) {
+        btn.disabled = true;
+        const pts = getSuccessPoints(type);
+        const newCount = await Store.addSuccess(kidId, type, todayStr());
+        await Store.addPoints(kidId, pts);
+        await loadData();
+        celebrate('stars');
+        toast(`${successType.icon} ${successType.name} - הצלחה #${newCount}! +${pts} ⭐`);
+        render();
+      } break;
+    }
 
     // Shopping
     case 'shop-tab': state.shopTab = btn.dataset.tab; render(); break;

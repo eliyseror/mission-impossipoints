@@ -11,6 +11,7 @@ service cloud.firestore {
     match /events/{id} { allow read, write: if true; }
     match /meals/{id} { allow read, write: if true; }
     match /messages/{id} { allow read, write: if true; }
+    match /successes/{id} { allow read, write: if true; }
     match /{document=**} { allow read, write: if false; }
   }
 }
