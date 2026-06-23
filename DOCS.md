@@ -23,12 +23,13 @@ mission-impossipoints/
 ├── manifest.json           # PWA manifest
 ├── sw.js                   # Service worker (network-first, cache fallback)
 ├── firestore.rules         # Firestore security rules (open read/write)
+├── DOCS.md                 # This file
 ├── css/
-│   └── style.css           # All styling (~1700 lines, dark theme, RTL)
+│   └── style.css           # All styling (~1750 lines, dark theme, RTL)
 ├── js/
 │   ├── firebase-config.js  # Firebase init
-│   ├── store.js            # Data layer — all Firestore CRUD
-│   └── app.js              # UI logic — state, rendering, events (~1400 lines)
+│   ├── store.js            # Data layer — all Firestore CRUD (~340 lines)
+│   └── app.js              # UI logic — state, rendering, events (~1500 lines)
 └── icons/
     ├── icon-192.svg
     └── icon-512.svg
@@ -77,6 +78,11 @@ mission-impossipoints/
 | `meals` | `{date}_{type}` | `date`, `type`, `description`, `updatedAt` |
 | `messages` | auto | `text`, `author`, `pinned`, `createdAt` |
 
+### History `type` field values
+- `'chore'` — Regular daily mission completion (requires parent approval)
+- `'weekly'` — Weekly personal mission completion (requires parent approval)
+- `'redeem'` — Prize redemption (auto-approved, points deducted immediately)
+
 ## Key Features
 
 ### 1. Missions (Chores) — Grouped by Time of Day
@@ -99,10 +105,11 @@ const TIME_SECTORS = [
 
 ### 2. Duplicate Prevention (Anti-Spam)
 
-Kids can't submit the same chore multiple times:
+Kids can't submit the same mission multiple times:
 - **UI level:** Button immediately disabled + text changes to ⏳ on click
-- **Client state check:** Checks `state.pending` for existing pending request (same kid + chore)
+- **Client state check:** Checks `state.pending` for existing pending request (same kid + item)
 - **Database guard:** `Store.addRequest` queries Firestore for existing pending record before inserting
+- Applies to both `type === 'chore'` and `type === 'weekly'`
 
 ### 3. Successes (הצלחות) — Behavioral Tracking
 
@@ -123,13 +130,14 @@ const SUCCESS_TYPES = [
 - Taps "הצלחתי!" → counter increments, points added immediately (no parent approval)
 - Data stored as `successes/{kidId}_{type}_{date}` with a `count` field
 - Resets daily (each date has its own document)
-- If multiple kids: chips at top to switch between them
+- If multiple kids: chips at top to switch between them, defaults to first kid
 
 **Points are configurable per kid:**
 - Parent panel → 🏆 הצלחות tab
 - Each kid has their own +/− controls per success type
 - Stored in `config/successPoints` as `{ kidId: { typeId: points } }`
 - Helper: `getSuccessPoints(typeId, kidId)` returns configured or default (5)
+- Minimum 1 point per success
 
 ### 4. Weekly Personal Missions (משימות אישיות)
 
@@ -146,9 +154,17 @@ Per-kid weekly missions set by parents. Different from regular chores — these 
 
 **Kid screen:**
 - Shows under "🎖️ משימות אישיות השבוע" section (only if they have missions)
-- Kid taps "בוצע! ✓" to complete — points added immediately (no approval)
+- Kid taps "בוצע! ✓" → sends request to parent for approval (shows "ממתין ⏳")
+- Parent approves → points added + mission marked as `done: true`
+- Parent rejects → kid can submit again
 - Completed missions show with strikethrough and ✓ badge
-- Each mission can only be completed once (done=true)
+- Visual: gold left border distinguishes from regular chores
+
+**Approval flow (same as regular chores):**
+1. Kid taps "בוצע!" → `Store.addRequest(...)` with `type: 'weekly'`
+2. Shows in parent's אישור tab with 🎖️ icon
+3. Parent approves → `Store.approveRequest(...)` + `Store.toggleWeeklyMission(id, true)`
+4. Anti-spam: can't submit same weekly mission twice while pending
 
 **Weekly reset:** Missions don't auto-delete. Each week parents create new missions with the new `weekStart`. Old missions stay in DB but don't show (different weekStart).
 
@@ -156,22 +172,22 @@ Per-kid weekly missions set by parents. Different from regular chores — these 
 
 One chore per day gets a bonus (+5 points). Auto-rotates daily based on day-of-year. Parents can override in settings.
 
-### 5. Prize Shop
+### 6. Prize Shop
 
 Kids redeem points for prizes. Points deducted immediately, no approval needed for redemptions.
 
-### 6. Parent Panel (מרכז הפיקוד)
+### 7. Parent Panel (מרכז הפיקוד)
 
-PIN-protected. Tabs:
-- **אישור** — Approve/reject pending chore completions
-- **ילדים** — Add/edit/delete kids
-- **משימות** — Manage chores (with time-of-day)
-- **פרסים** — Manage prizes
-- **אישיות** — Weekly personal missions per kid (add/edit/delete)
-- **הצלחות** — Configure success points per kid
-- **נקודות** — Manual point adjustment (+10, +25, -10, custom, reset)
-- **שבועי** — Weekly progress report per kid
-- **הגדרות** — Daily special, change PIN, lock panel
+PIN-protected (4-digit code). Tabs:
+- **✓ אישור** — Approve/reject pending completions (chores 🎯 and weekly missions 🎖️)
+- **👤 ילדים** — Add/edit/delete kids
+- **🎯 משימות** — Manage chores (with time-of-day sectors)
+- **🎖️ אישיות** — Weekly personal missions per kid (add/edit/delete)
+- **🎁 פרסים** — Manage prizes
+- **🏆 הצלחות** — Configure success points per kid (individual +/−)
+- **⭐ נקודות** — Manual point adjustment (+10, +25, -10, custom, reset per kid or all)
+- **📊 שבועי** — Weekly progress report per kid (expandable day details)
+- **⚙️ הגדרות** — Daily special override, change PIN, lock panel
 
 ## UI Patterns
 
@@ -188,6 +204,14 @@ PIN-protected. Tabs:
 - Network-first with cache fallback
 - Firebase SDK and Firestore API requests are excluded from caching
 - Cache name must be bumped (`impossipoints-vN`) on each deploy to invalidate
+- Current version: check `sw.js` line 1
+
+## Deployment
+
+- **Vercel:** Auto-deploys from GitHub `main` branch
+- **Firestore rules:** Must be deployed separately via Firebase Console or CLI
+  - Console: https://console.firebase.google.com/project/kids-rewards-c00ed/firestore/rules
+  - CLI: `firebase deploy --only firestore:rules --project kids-rewards-c00ed`
 
 ## Important Notes
 
@@ -195,3 +219,5 @@ PIN-protected. Tabs:
 - **RTL layout** — Hebrew, uses Heebo font, `dir="rtl"` on `<html>`
 - **Mobile-first** — Max-width 500px, safe-area insets, no zoom
 - **Offline-capable** — PWA with service worker, but Firestore calls need connectivity
+- **Firestore rules are open** — No authentication; designed for trusted family use only
+- **Week boundary** — Sunday (day 0) is start of week for weekly missions and reports

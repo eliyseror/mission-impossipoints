@@ -1488,6 +1488,15 @@ body {
   font-weight: 600;
 }
 
+.success-card-pending {
+  font-size: 0.75rem;
+  color: var(--gold);
+  font-weight: 600;
+  padding: 2px 8px;
+  background: rgba(240, 165, 0, 0.1);
+  border-radius: 8px;
+}
+
 .success-card-btn {
   margin-top: 6px;
   padding: 8px 14px;

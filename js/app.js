@@ -489,6 +489,10 @@ async function renderSuccesses() {
     totalToday = Object.values(countsMap).reduce((a, b) => a + b, 0);
   } catch(e) { console.error('Error loading successes:', e); }
 
+  const pendingSuccesses = state.pending.filter(p => p.kidId === kid.id && p.type === 'success');
+  const pendingMap = {};
+  pendingSuccesses.forEach(p => { pendingMap[p.itemId] = p.count || 1; });
+
   return `<div class="screen-content">
     ${state.kids.length > 1 ? `
       <div class="kid-select">
@@ -499,20 +503,21 @@ async function renderSuccesses() {
       <div class="success-header-icon">${kid.icon}</div>
       <div class="success-header-info">
         <div class="success-header-name">${kid.name}</div>
-        <div class="success-header-today">🏆 ${totalToday} הצלחות היום</div>
+        <div class="success-header-today">🏆 ${totalToday} הצלחות אושרו היום</div>
       </div>
     </div>
     <div class="success-grid">
       ${SUCCESS_TYPES.map(type => {
-        const count = countsMap[type.id] || 0;
+        const approved = countsMap[type.id] || 0;
+        const pending = pendingMap[type.id] || 0;
         const pts = getSuccessPoints(type.id, kid.id);
-        return `<div class="success-card" data-action="log-success" data-type="${type.id}" data-kid-id="${kid.id}">
+        return `<div class="success-card">
           <div class="success-card-icon">${type.icon}</div>
           <div class="success-card-name">${type.name}</div>
           <div class="success-card-desc">${type.desc}</div>
-          <div class="success-card-count">${count}</div>
-          <div class="success-card-points">+${pts} ⭐</div>
-          <button class="success-card-btn" data-action="log-success" data-type="${type.id}" data-kid-id="${kid.id}">הצלחתי! ✓</button>
+          <div class="success-card-count">${approved}</div>
+          ${pending > 0 ? `<div class="success-card-pending">⏳ ${pending} ממתין לאישור</div>` : `<div class="success-card-points">+${pts} ⭐</div>`}
+          <button class="success-card-btn" data-action="log-success" data-type="${type.id}" data-kid-id="${kid.id}">הצלחתי! +1</button>
         </div>`;
       }).join('')}
     </div>
@@ -821,13 +826,17 @@ async function renderParentInner() {
 
 function renderParentApprove() {
   if (!state.pending.length) return '<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-text">אין משימות ממתינות לאישור</div></div>';
-  return state.pending.map(p => `<div class="pending-card">
-    <div class="pending-top"><span class="pending-kid">${p.kidName}</span><span class="pending-type">${p.type==='weekly'?'🎖️':'🎯'}</span><span class="pending-mission">${p.itemName}</span><span class="pending-points">+${p.points} ⭐</span></div>
-    <div class="btn-row">
-      <button class="btn btn-success btn-sm" data-action="approve" data-id="${p.id}" data-kid-id="${p.kidId}" data-points="${p.points}">✓ אשר</button>
-      <button class="btn btn-danger btn-sm" data-action="reject" data-id="${p.id}">✗ דחה</button>
-    </div>
-  </div>`).join('');
+  return state.pending.map(p => {
+    const typeIcon = p.type === 'weekly' ? '🎖️' : p.type === 'success' ? (SUCCESS_TYPES.find(t => t.id === p.itemId)?.icon || '🏆') : '🎯';
+    const countLabel = p.type === 'success' && p.count > 1 ? ` ×${p.count}` : '';
+    return `<div class="pending-card">
+      <div class="pending-top"><span class="pending-kid">${p.kidName}</span><span class="pending-type">${typeIcon}</span><span class="pending-mission">${p.itemName}${countLabel}</span><span class="pending-points">+${p.points} ⭐</span></div>
+      <div class="btn-row">
+        <button class="btn btn-success btn-sm" data-action="approve" data-id="${p.id}" data-kid-id="${p.kidId}" data-points="${p.points}">✓ אשר</button>
+        <button class="btn btn-danger btn-sm" data-action="reject" data-id="${p.id}">✗ דחה</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderParentKids() {
@@ -1118,6 +1127,9 @@ async function handleClick(e) {
       if (req && req.type === 'weekly') {
         await Store.toggleWeeklyMission(req.itemId, true);
       }
+      if (req && req.type === 'success') {
+        await Store.addSuccess(req.kidId, req.itemId, todayStr(), req.count || 1);
+      }
       await loadData(); celebrate('stars'); toast('✓ אושר!'); render(); break;
     }
     case 'reject':
@@ -1216,15 +1228,15 @@ async function handleClick(e) {
     case 'log-success': {
       const type = btn.dataset.type;
       const kidId = btn.dataset.kidId;
+      const kid = state.kids.find(k => k.id === kidId);
       const successType = SUCCESS_TYPES.find(t => t.id === type);
-      if (successType && kidId) {
+      if (successType && kid) {
         btn.disabled = true;
         const pts = getSuccessPoints(type, kidId);
-        const newCount = await Store.addSuccess(kidId, type, todayStr());
-        await Store.addPoints(kidId, pts);
+        const newCount = await Store.addSuccessRequest(kidId, kid.name, type, successType.name, pts);
         await loadData();
-        celebrate('stars');
-        toast(`${successType.icon} ${successType.name} - הצלחה #${newCount}! +${pts} ⭐`);
+        playSound('tap');
+        toast(`${successType.icon} ${successType.name} ×${newCount} — ממתין לאישור`);
         render();
       } break;
     }

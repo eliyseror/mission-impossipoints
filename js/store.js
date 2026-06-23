@@ -126,9 +126,37 @@ const Store = {
     return db.collection('history').add({
       kidId, kidName, itemId, itemName, type,
       points: Number(points),
+      count: 1,
       status: type === 'redeem' ? 'approved' : 'pending',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+  },
+
+  async addSuccessRequest(kidId, kidName, successTypeId, successTypeName, pointsPerOne) {
+    const existing = await db.collection('history')
+      .where('kidId', '==', kidId)
+      .where('itemId', '==', successTypeId)
+      .where('type', '==', 'success')
+      .where('status', '==', 'pending')
+      .limit(1).get();
+    if (!existing.empty) {
+      const doc = existing.docs[0];
+      const newCount = (doc.data().count || 1) + 1;
+      await doc.ref.update({
+        count: newCount,
+        points: newCount * Number(pointsPerOne)
+      });
+      return newCount;
+    }
+    await db.collection('history').add({
+      kidId, kidName, itemId: successTypeId, itemName: successTypeName,
+      type: 'success',
+      points: Number(pointsPerOne),
+      count: 1,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return 1;
   },
 
   async getPending() {
@@ -302,17 +330,17 @@ const Store = {
     return docs.filter(d => d.exists).map(d => ({ id: d.id, ...d.data() }));
   },
 
-  async addSuccess(kidId, type, date) {
+  async addSuccess(kidId, type, date, amount = 1) {
     const key = `${kidId}_${type}_${date}`;
     const docRef = db.collection('successes').doc(key);
     const doc = await docRef.get();
     if (doc.exists) {
-      const newCount = (doc.data().count || 0) + 1;
+      const newCount = (doc.data().count || 0) + amount;
       await docRef.update({ count: newCount });
       return newCount;
     } else {
-      await docRef.set({ kidId, type, date, count: 1 });
-      return 1;
+      await docRef.set({ kidId, type, date, count: amount });
+      return amount;
     }
   },
 
